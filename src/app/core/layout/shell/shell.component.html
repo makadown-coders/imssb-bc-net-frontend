@@ -1,0 +1,19 @@
+<mat-toolbar color="primary" class="app-toolbar">
+  <div class="brand-block">
+    <span class="brand-line">
+      <mat-icon aria-hidden="true">verified_user</mat-icon>
+      <span class="brand-name">IMSSB-BC-NET</span>
+    </span>
+    @if (authStore.currentUser(); as user) {
+      <span class="welcome-text">Bienvenido, {{ user.email }}</span>
+    }
+  </div>
+  <nav class="app-nav" aria-label="Principal">
+    <a mat-button routerLink="/dashboard" routerLinkActive="is-active">Dashboard</a>
+    <a mat-button routerLink="/catalogos" routerLinkActive="is-active">Catálogos</a>
+  </nav>
+</mat-toolbar>
+
+<main class="app-main">
+  <router-outlet />
+</main>

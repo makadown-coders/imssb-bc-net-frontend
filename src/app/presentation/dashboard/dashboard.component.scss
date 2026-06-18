@@ -1,0 +1,59 @@
+.dashboard-page {
+  padding: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+mat-card {
+  border-radius: 8px;
+  border-top: 4px solid var(--imssb-green-500);
+}
+
+.user-details {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+}
+
+.user-details div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+dt {
+  font-weight: 600;
+  color: var(--imssb-green-800);
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  margin: 1rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  color: var(--imssb-muted);
+}
+
+.loading-state {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+}
+
+button {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}

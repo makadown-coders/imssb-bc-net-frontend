@@ -1,0 +1,44 @@
+<section class="login-page">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>Iniciar sesion</mat-card-title>
+      <mat-card-subtitle>
+        <img class="login-logo" src="imssb-logo.svg" alt="IMSS Bienestar" />
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Correo</mat-label>
+          <input matInput formControlName="email" type="email" autocomplete="username" />
+          <mat-icon matSuffix>mail</mat-icon>
+          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+            <mat-error>El correo es obligatorio</mat-error>
+          }
+          @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+            <mat-error>Ingresa un correo válido</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Contraseña</mat-label>
+          <input matInput formControlName="password" type="password" autocomplete="current-password" />
+          <mat-icon matSuffix>lock</mat-icon>
+          @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+            <mat-error>La contraseña es obligatoria</mat-error>
+          }
+        </mat-form-field>
+
+        <button class="imssb-primary-button" type="submit" [disabled]="isLoading()">
+          @if (isLoading()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            <mat-icon>login</mat-icon>
+          }
+          <span>Entrar</span>
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</section>

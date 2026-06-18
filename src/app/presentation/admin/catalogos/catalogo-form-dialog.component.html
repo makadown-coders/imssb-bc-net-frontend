@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content>
+  <form class="catalogo-dialog-form" [formGroup]="form">
+    @for (field of data.fields; track field.key) {
+      @switch (field.type) {
+        @case ('textarea') {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ field.label }}</mat-label>
+            <textarea matInput rows="3" [formControlName]="field.key"></textarea>
+          </mat-form-field>
+        }
+        @case ('number') {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ field.label }}</mat-label>
+            <input matInput type="number" step="any" [formControlName]="field.key" />
+          </mat-form-field>
+        }
+        @case ('select') {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ field.label }}</mat-label>
+            <mat-select [formControlName]="field.key">
+              @if (!field.required) {
+                <mat-option [value]="null">Sin asignar</mat-option>
+              }
+              @for (option of optionsFor(field); track option.id) {
+                <mat-option [value]="option.id">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+        @case ('boolean') {
+          <mat-checkbox [formControlName]="field.key">{{ field.label }}</mat-checkbox>
+        }
+        @default {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ field.label }}</mat-label>
+            <input matInput type="text" [maxlength]="field.maxLength || null" [formControlName]="field.key" />
+          </mat-form-field>
+        }
+      }
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Cancelar</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">
+    <mat-icon>save</mat-icon>
+    <span>Guardar</span>
+  </button>
+</mat-dialog-actions>

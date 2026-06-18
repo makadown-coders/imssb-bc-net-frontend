@@ -1,0 +1,60 @@
+<section class="dashboard-page">
+  <div class="dashboard-grid">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Usuario actual</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (authStore.currentUser(); as user) {
+          <dl class="user-details">
+            <div>
+              <dt>Email</dt>
+              <dd>{{ user.email }}</dd>
+            </div>
+            <div>
+              <dt>Id</dt>
+              <dd>{{ user.id }}</dd>
+            </div>
+            <div>
+              <dt>CreatedAt</dt>
+              <dd>{{ user.createdAt | date: 'medium' }}</dd>
+            </div>
+          </dl>
+        } @else if (authStore.isLoading()) {
+          <div class="loading-state">
+            <mat-spinner diameter="28" />
+          </div>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-stroked-button color="warn" type="button" (click)="logout()" [disabled]="authStore.isLoading()">
+          <mat-icon>logout</mat-icon>
+          <span>Cerrar sesión</span>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Ping público</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (pingResult(); as ping) {
+          <pre>{{ ping | json }}</pre>
+        } @else {
+          <p class="empty-state">Sin resultado todavía.</p>
+        }
+      </mat-card-content>
+      <mat-card-actions>
+        <button class="imssb-primary-button" type="button" (click)="testPing()" [disabled]="pingLoading()">
+          @if (pingLoading()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            <mat-icon>wifi_tethering</mat-icon>
+          }
+          <span>Probar ping</span>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</section>

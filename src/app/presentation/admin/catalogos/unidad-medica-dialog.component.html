@@ -1,0 +1,92 @@
+<h2 mat-dialog-title>{{ data.unidad ? 'Editar unidad médica' : 'Nueva unidad médica' }}</h2>
+
+<mat-dialog-content>
+  <form class="unidad-form" [formGroup]="form">
+    <section>
+      <h3>Identificación</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Nombre</mat-label>
+          <input matInput type="text" formControlName="nombre" maxlength="255" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CLUES SSA</mat-label>
+          <input matInput type="text" formControlName="cluessa" maxlength="20" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CLUES IMB</mat-label>
+          <input matInput type="text" formControlName="cluesimb" maxlength="20" />
+        </mat-form-field>
+
+        <mat-checkbox formControlName="activo">Activa</mat-checkbox>
+      </div>
+    </section>
+
+    <section>
+      <h3>Ubicación</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Dirección</mat-label>
+          <textarea matInput rows="3" formControlName="direccion"></textarea>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Localidad</mat-label>
+          <mat-select formControlName="localidadId">
+            <mat-option [value]="null">Sin asignar</mat-option>
+            @for (localidad of data.localidades; track localidad.id) {
+              <mat-option [value]="localidad.id">
+                {{ localidad.nombreMunicipio ? localidad.nombreLocalidad + ' · ' + localidad.nombreMunicipio : localidad.nombreLocalidad }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Latitud</mat-label>
+          <input matInput type="number" step="any" formControlName="latitud" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Longitud</mat-label>
+          <input matInput type="number" step="any" formControlName="longitud" />
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section>
+      <h3>Clasificación</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Tipo de unidad</mat-label>
+          <mat-select formControlName="tipoUnidadId">
+            <mat-option [value]="null">Sin asignar</mat-option>
+            @for (tipo of data.tiposUnidad; track tipo.id) {
+              <mat-option [value]="tipo.id">{{ tipo.nombreTipo }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Estrato</mat-label>
+          <input matInput type="text" formControlName="estratoUnidad" maxlength="10" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Nivel de atención</mat-label>
+          <input matInput type="text" formControlName="nivelAtencion" maxlength="30" />
+        </mat-form-field>
+      </div>
+    </section>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Cancelar</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">
+    <mat-icon>save</mat-icon>
+    <span>Guardar</span>
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,59 @@
+:host {
+  display: block;
+}
+
+mat-dialog-content {
+  max-height: min(72vh, 760px);
+}
+
+.unidad-form {
+  display: grid;
+  gap: 1rem;
+  min-width: min(760px, 80vw);
+  padding-top: 0.25rem;
+}
+
+section {
+  border: 1px solid var(--imssb-line);
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fbfdfc;
+}
+
+h3 {
+  margin: 0 0 0.85rem;
+  color: var(--imssb-green-900);
+  font-size: 0.95rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+mat-checkbox {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .unidad-form {
+    min-width: 0;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
