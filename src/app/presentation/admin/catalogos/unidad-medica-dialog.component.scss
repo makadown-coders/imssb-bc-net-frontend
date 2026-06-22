@@ -42,6 +42,24 @@ mat-checkbox {
   align-items: center;
 }
 
+.map-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--imssb-muted);
+  font-size: 0.86rem;
+}
+
+.map-action button:not(:disabled) {
+  color: var(--imssb-green-700);
+  background: var(--imssb-green-050);
+}
+
+.map-action button:disabled {
+  color: var(--imssb-muted);
+}
+
 button {
   display: inline-flex;
   align-items: center;
