@@ -28,4 +28,6 @@ export const API_ENDPOINTS = {
     tipologias: '/api/catalogos/tipologias',
     tipologiasUnidad: '/api/catalogos/tipologias-unidad',
   },
+  personas: '/api/personas',
+  roles: '/api/roles',
 } as const;

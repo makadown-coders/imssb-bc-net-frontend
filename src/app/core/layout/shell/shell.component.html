@@ -1,3 +1,4 @@
+@if (showNavigation()) {
 <mat-toolbar color="primary" class="app-toolbar">
   <div class="brand-block">
     <span class="brand-line">
@@ -11,9 +12,11 @@
   <nav class="app-nav" aria-label="Principal">
     <a mat-button routerLink="/dashboard" routerLinkActive="is-active">Dashboard</a>
     <a mat-button routerLink="/catalogos" routerLinkActive="is-active">Catálogos</a>
+    <a mat-button routerLink="/personas" routerLinkActive="is-active">Personas</a>
   </nav>
 </mat-toolbar>
+}
 
-<main class="app-main">
+<main class="app-main" [class.login-main]="!showNavigation()">
   <router-outlet />
 </main>

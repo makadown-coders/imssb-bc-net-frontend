@@ -1,0 +1,17 @@
+<h2 mat-dialog-title>{{ data.persona ? 'Editar persona' : 'Nueva persona' }}</h2>
+
+<mat-dialog-content>
+<div [formGroup]="form" class="form-grid">
+  <mat-form-field appearance="outline"><mat-label>Nombres</mat-label><input matInput formControlName="nombres" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Apellidos</mat-label><input matInput formControlName="apellidos" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Cargo</mat-label><input matInput formControlName="cargo" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Unidad médica</mat-label><input matInput [formControl]="unidadSeleccionada" [matAutocomplete]="unidades" /><button mat-icon-button matSuffix type="button" aria-label="Quitar unidad médica" (click)="clearUnidad()">×</button><mat-autocomplete #unidades="matAutocomplete" [displayWith]="displayUnidad">@for (unidad of unidadesFiltradas(); track unidad.id) {<mat-option [value]="unidad">{{ unidad.nombre }}</mat-option>}@if (unidadesFiltradas().length === 0) {<mat-option disabled>Sin coincidencias</mat-option>}</mat-autocomplete></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Correo principal</mat-label><input matInput type="email" formControlName="correoPrincipal" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Username</mat-label><input matInput formControlName="username" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>RFC</mat-label><input matInput formControlName="rfc" /></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>CURP</mat-label><input matInput formControlName="curp" /></mat-form-field>
+  <mat-checkbox formControlName="activo">Persona activa</mat-checkbox>
+</div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Guardar</button></mat-dialog-actions>

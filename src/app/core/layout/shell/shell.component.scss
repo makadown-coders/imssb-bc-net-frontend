@@ -52,6 +52,11 @@
     var(--imssb-surface);
 }
 
+.app-main.login-main {
+  min-height: 100vh;
+  background: var(--imssb-surface);
+}
+
 @media (max-width: 640px) {
   .app-toolbar {
     min-height: 112px;

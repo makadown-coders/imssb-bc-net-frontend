@@ -1,0 +1,5 @@
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; margin-top: 20px; padding: 0 0 8px; }
+mat-form-field { width: 100%; min-width: 0; }
+button[matSuffix] { font-size: 1.25rem; line-height: 1; }
+:host ::ng-deep .mat-mdc-dialog-content { overflow-x: hidden; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
