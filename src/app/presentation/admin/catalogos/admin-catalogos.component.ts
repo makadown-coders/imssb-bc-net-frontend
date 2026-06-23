@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, finalize } from 'rxjs';
 import {
   Localidad,
@@ -79,6 +80,7 @@ interface CatalogDefinition {
     MatSelectModule,
     MatSnackBarModule,
     MatTabsModule,
+    MatTooltipModule,
   ],
   templateUrl: './admin-catalogos.component.html',
   styleUrl: './admin-catalogos.component.scss',
@@ -263,6 +265,30 @@ export class AdminCatalogosComponent implements OnInit {
   dateValue(row: CatalogRow, column: CatalogColumn): string | number | Date | null {
     const value = this.value(row, column);
     return value instanceof Date || typeof value === 'string' || typeof value === 'number' ? value : null;
+  }
+
+  hasMapCoordinates(row: CatalogRow): boolean {
+    if (this.definition().key !== 'unidades-medicas') {
+      return false;
+    }
+
+    const unit = row as UnidadMedica;
+    return unit.latitud !== null
+      && unit.longitud !== null
+      && unit.latitud >= -90
+      && unit.latitud <= 90
+      && unit.longitud >= -180
+      && unit.longitud <= 180;
+  }
+
+  openMap(row: CatalogRow): void {
+    if (!this.hasMapCoordinates(row)) {
+      return;
+    }
+
+    const unit = row as UnidadMedica;
+    const query = encodeURIComponent(`${unit.latitud},${unit.longitud}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer');
   }
 
   optionsFor(field: CatalogField): Array<{ id: number; label: string }> {

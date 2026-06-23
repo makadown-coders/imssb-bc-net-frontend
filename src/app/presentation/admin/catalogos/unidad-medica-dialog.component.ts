@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Localidad, TipoUnidad, UnidadMedica } from '../../../domain/catalogos/models/catalogo.model';
 import { UnidadMedicaRequest } from '../../../infrastructure/catalogos/api/catalogos-api.service';
 
@@ -27,6 +28,7 @@ export interface UnidadMedicaDialogData {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatTooltipModule,
   ],
   templateUrl: './unidad-medica-dialog.component.html',
   styleUrl: './unidad-medica-dialog.component.scss',
@@ -49,6 +51,23 @@ export class UnidadMedicaDialogComponent {
     estratoUnidad: [this.data.unidad?.estratoUnidad ?? '', [Validators.maxLength(10)]],
     nivelAtencion: [this.data.unidad?.nivelAtencion ?? '', [Validators.maxLength(30)]],
   });
+
+  get hasCoordinates(): boolean {
+    const latitude = this.numberOrNull('latitud');
+    const longitude = this.numberOrNull('longitud');
+    return latitude !== null && longitude !== null && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+  }
+
+  openMap(): void {
+    const latitude = this.numberOrNull('latitud');
+    const longitude = this.numberOrNull('longitud');
+    if (latitude === null || longitude === null || !this.hasCoordinates) {
+      return;
+    }
+
+    const query = encodeURIComponent(`${latitude},${longitude}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer');
+  }
 
   save(): void {
     if (this.form.invalid) {

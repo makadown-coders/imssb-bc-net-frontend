@@ -73,7 +73,23 @@
                           {{ dateValue(row, column) | date: 'medium' }}
                         }
                         @default {
-                          {{ value(row, column) || '—' }}
+                          @if (definition().key === 'unidades-medicas' && column.key === 'nombre') {
+                            <div class="unit-name-cell">
+                              <button
+                                mat-icon-button
+                                type="button"
+                                aria-label="Abrir unidad en Google Maps"
+                                matTooltip="Abrir en Google Maps"
+                                [disabled]="!hasMapCoordinates(row)"
+                                (click)="openMap(row)"
+                              >
+                                <mat-icon>map</mat-icon>
+                              </button>
+                              <span>{{ value(row, column) || '—' }}</span>
+                            </div>
+                          } @else {
+                            {{ value(row, column) || '—' }}
+                          }
                         }
                       }
                     </td>

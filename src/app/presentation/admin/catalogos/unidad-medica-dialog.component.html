@@ -53,6 +53,20 @@
           <mat-label>Longitud</mat-label>
           <input matInput type="number" step="any" formControlName="longitud" />
         </mat-form-field>
+
+        <div class="map-action span-2">
+          <button
+            mat-icon-button
+            type="button"
+            aria-label="Abrir coordenadas en Google Maps"
+            matTooltip="Abrir en Google Maps"
+            [disabled]="!hasCoordinates"
+            (click)="openMap()"
+          >
+            <mat-icon>map</mat-icon>
+          </button>
+          <span>{{ hasCoordinates ? 'Ver ubicación en Google Maps' : 'Captura latitud y longitud válidas para ver el mapa' }}</span>
+        </div>
       </div>
     </section>
 

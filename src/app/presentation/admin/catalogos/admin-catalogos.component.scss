@@ -123,6 +123,21 @@ td {
   color: var(--imssb-ink);
 }
 
+.unit-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 180px;
+}
+
+.unit-name-cell button:not(:disabled) {
+  color: var(--imssb-green-700);
+}
+
+.unit-name-cell button:disabled {
+  color: var(--imssb-muted);
+}
+
 tbody tr:hover,
 tbody tr.is-selected {
   background: #f8fbf9;
