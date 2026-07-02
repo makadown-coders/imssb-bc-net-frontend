@@ -57,6 +57,10 @@ class FakeAuthRepository implements AuthRepository {
     return of({ id: 'user-id', email: 'admin@imssb-bc.test', createdAt: '2026-06-18T00:00:00Z' });
   }
 
+  changePassword(): Observable<void> {
+    return of(void 0);
+  }
+
   ping(): Observable<PingResponse> {
     return of({ message: 'pong', timestamp: '2026-06-18T00:00:00Z' });
   }

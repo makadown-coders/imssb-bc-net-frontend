@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   },
   user: {
     me: '/api/user/me',
+    password: '/api/user/me/password',
   },
   catalogos: {
     tipoUnidad: '/api/catalogos/tipo-unidad',
@@ -28,4 +29,7 @@ export const API_ENDPOINTS = {
     tipologias: '/api/catalogos/tipologias',
     tipologiasUnidad: '/api/catalogos/tipologias-unidad',
   },
+  personas: '/api/personas',
+  users: '/api/users',
+  roles: '/api/roles',
 } as const;

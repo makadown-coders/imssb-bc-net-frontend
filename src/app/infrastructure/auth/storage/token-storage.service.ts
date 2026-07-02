@@ -38,7 +38,7 @@ export class LocalStorageTokenStorageService implements TokenStoragePort {
   }
 
   saveSession(session: AuthSession): void {
-    // Demo storage only. In production, prefer httpOnly + SameSite cookies when the backend supports them.
+    // Almacenamiento temporal: en producción se prefieren cookies httpOnly + SameSite cuando el backend las admita.
     localStorage.setItem(STORAGE_KEYS.accessToken, session.accessToken);
     localStorage.setItem(STORAGE_KEYS.refreshToken, session.refreshToken);
     localStorage.setItem(STORAGE_KEYS.accessTokenExpiresUtc, session.accessTokenExpiresUtc);

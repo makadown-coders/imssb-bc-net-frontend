@@ -1,19 +1,21 @@
+@if (showNavigation()) {
 <mat-toolbar color="primary" class="app-toolbar">
   <div class="brand-block">
-    <span class="brand-line">
-      <mat-icon aria-hidden="true">verified_user</mat-icon>
-      <span class="brand-name">IMSSB-BC-NET</span>
-    </span>
-    @if (authStore.currentUser(); as user) {
-      <span class="welcome-text">Bienvenido, {{ user.email }}</span>
-    }
+    <span class="brand-line"><img alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" src="imssb-logo-blanco.png"></span>
+    @if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}
   </div>
-  <nav class="app-nav" aria-label="Principal">
-    <a mat-button routerLink="/dashboard" routerLinkActive="is-active">Dashboard</a>
-    <a mat-button routerLink="/catalogos" routerLinkActive="is-active">Catálogos</a>
+  <button mat-icon-button class="menu-toggle" type="button" aria-label="Abrir menú principal" aria-controls="main-navigation" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()">
+    <mat-icon>{{ mobileNavigationOpen() ? 'close' : 'menu' }}</mat-icon>
+  </button>
+  <nav id="main-navigation" class="app-nav" [class.is-open]="mobileNavigationOpen()" aria-label="Principal">
+    <a mat-button routerLink="/dashboard" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>dashboard</mat-icon>Dashboard</a>
+    @if (isAdminTic()) {
+      <a mat-button routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>list_alt</mat-icon>Catálogos</a>
+      <a mat-button routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>groups</mat-icon>Personas</a>
+      <a mat-button routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>manage_accounts</mat-icon>Usuarios</a>
+    }
   </nav>
 </mat-toolbar>
+}
 
-<main class="app-main">
-  <router-outlet />
-</main>
+<main class="app-main" [class.login-main]="!showNavigation()"><router-outlet /></main>

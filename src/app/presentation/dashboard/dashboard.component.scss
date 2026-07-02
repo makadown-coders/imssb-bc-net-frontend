@@ -57,3 +57,13 @@ button {
   gap: 0.5rem;
   align-items: center;
 }
+
+.password-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.password-form button {
+  justify-self: start;
+}

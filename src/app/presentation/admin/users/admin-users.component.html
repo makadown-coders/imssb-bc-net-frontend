@@ -1,0 +1,17 @@
+<section class="users-page">
+  <header class="page-header"><div><h1>Usuarios y accesos</h1><p>Administra roles y contraseñas de las cuentas vinculadas a Personas.</p></div></header>
+  <section class="table-panel">
+    <div class="toolbar">
+      <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic"><mat-label>Correo, persona, RFC o CURP</mat-label><mat-icon matPrefix>search</mat-icon><input matInput [value]="query()" (input)="search($any($event.target).value)" /></mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>Unidad</mat-label><mat-select [value]="unidadId()" (valueChange)="filterUnidad($event)"><mat-option [value]="null">Todas</mat-option>@for (unidad of unidades(); track unidad.id) {<mat-option [value]="unidad.id">{{ unidad.nombre }}</mat-option>}</mat-select></mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>Rol</mat-label><mat-select [value]="roleCode()" (valueChange)="filterRole($event)"><mat-option [value]="null">Todos</mat-option>@for (role of roles(); track role.code) {<mat-option [value]="role.code">{{ role.descripcion }}</mat-option>}</mat-select></mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"><mat-label>Estado</mat-label><mat-select [value]="isActive()" (valueChange)="filterStatus($event)"><mat-option [value]="null">Todos</mat-option><mat-option [value]="true">Activos</mat-option><mat-option [value]="false">Inactivos</mat-option></mat-select></mat-form-field>
+      <div class="toolbar-actions"><button mat-button (click)="clearFilters()"><mat-icon>filter_alt_off</mat-icon>Limpiar</button><button mat-icon-button matTooltip="Recargar" (click)="loadUsers()"><mat-icon>refresh</mat-icon></button></div>
+    </div>
+    @if (loading()) {<div class="loading"><mat-spinner diameter="32" /></div>} @else if (users().length === 0) {<div class="empty">No hay usuarios que coincidan con los filtros.</div>} @else {
+      <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>Persona</th><th>Unidad</th><th>Roles</th><th>Estado</th><th class="actions">Acciones</th></tr></thead><tbody>
+      @for (user of users(); track user.id) {<tr><td><strong>{{ user.email }}</strong><small>{{ user.id }}</small></td><td>{{ user.nombrePersona || 'Cuenta sin Persona' }}</td><td>{{ user.nombreUnidad || 'Sin asignar' }}</td><td><mat-chip-set>@for (role of user.roles; track role.code) {<mat-chip [class.protected]="role.code === 'ADMIN_TIC'">{{ role.code }}</mat-chip>}@if (user.roles.length === 0) {<span class="muted">Sin roles</span>}</mat-chip-set></td><td><span class="status" [class.inactive]="!user.isActive">{{ user.isActive ? 'Activo' : 'Inactivo' }}</span></td><td class="row-actions"><button mat-icon-button matTooltip="Administrar roles" (click)="manageRoles(user)" [disabled]="saving()"><mat-icon>admin_panel_settings</mat-icon></button><button mat-icon-button matTooltip="Restablecer contraseña" (click)="resetPassword(user)" [disabled]="saving()"><mat-icon>password</mat-icon></button></td></tr>}
+      </tbody></table></div>
+    }
+  </section>
+</section>

@@ -25,6 +25,7 @@ export const authErrorInterceptor: HttpInterceptorFn = (request, next) => {
         return throwError(() => error);
       }
 
+      // El refresh token es rotatorio: el caso de uso guarda el nuevo par antes de reintentar.
       return refreshTokenUseCase.execute(refreshToken).pipe(
         switchMap((session) =>
           next(
