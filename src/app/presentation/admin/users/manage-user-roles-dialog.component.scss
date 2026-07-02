@@ -1,0 +1,5 @@
+mat-dialog-content { min-width: min(520px, 80vw); }
+.protected-role, .session-note { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; }
+.protected-role { background: #f3f4f6; margin: 12px 0; }.protected-role small { display: block; color: #667085; }
+.session-note { background: #eef5ff; color: #315b8a; font-size: .88rem; }.session-note mat-icon { flex: 0 0 auto; }
+.empty { color: #667085; text-align: center; padding: 20px; }

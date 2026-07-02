@@ -48,6 +48,10 @@ export class PersonasApiService {
     return this.http.post<void>(this.url(`${API_ENDPOINTS.personas}/${id}/usuario`), body);
   }
 
+  resetPassword(userId: string, newPassword: string): Observable<void> {
+    return this.http.put<void>(this.url(`/api/user/${userId}/password`), { newPassword });
+  }
+
   getRoles(): Observable<Role[]> {
     return this.http.get<Role[]>(this.url(API_ENDPOINTS.roles));
   }

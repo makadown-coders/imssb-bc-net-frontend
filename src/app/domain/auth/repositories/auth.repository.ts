@@ -8,5 +8,6 @@ export abstract class AuthRepository {
   abstract refreshSession(refreshToken: string): Observable<AuthSession>;
   abstract logout(refreshToken: string): Observable<void>;
   abstract getCurrentUser(): Observable<User>;
+  abstract changePassword(currentPassword: string, newPassword: string): Observable<void>;
   abstract ping(): Observable<PingResponse>;
 }

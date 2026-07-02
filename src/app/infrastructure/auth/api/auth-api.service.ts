@@ -8,6 +8,7 @@ import { User } from '../../../domain/auth/models/user.model';
 import { AuthRepository } from '../../../domain/auth/repositories/auth.repository';
 import {
   AuthSessionResponseDto,
+  ChangePasswordRequestDto,
   LoginRequestDto,
   LogoutRequestDto,
   PingResponseDto,
@@ -44,6 +45,11 @@ export class AuthApiService implements AuthRepository {
 
   getCurrentUser(): Observable<User> {
     return this.http.get<UserResponseDto>(this.url(API_ENDPOINTS.user.me)).pipe(map(mapUser));
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    const body: ChangePasswordRequestDto = { currentPassword, newPassword };
+    return this.http.put<void>(this.url(API_ENDPOINTS.user.password), body);
   }
 
   ping(): Observable<PingResponse> {

@@ -10,6 +10,11 @@ export interface LoginRequestDto {
   password: string;
 }
 
+export interface ChangePasswordRequestDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface RefreshTokenRequestDto {
   refreshToken: string;
 }
