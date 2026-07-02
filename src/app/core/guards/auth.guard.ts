@@ -20,6 +20,7 @@ export const guestGuard: CanActivateFn = (): boolean | UrlTree => {
 export const adminTicGuard: CanActivateFn = (): boolean | UrlTree => {
   const tokenStorage = inject(TokenStoragePort);
   const router = inject(Router);
+  // Ocultar una liga no protege una ruta; este guard evita también la navegación manual por URL.
   return hasTokenRole(tokenStorage.getAccessToken(), 'ADMIN_TIC')
     ? true
     : router.createUrlTree(['/dashboard']);

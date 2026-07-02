@@ -18,6 +18,7 @@ import { PersonaFormDialogComponent } from './persona-form-dialog.component';
 import { ProvisionarUsuarioDialogComponent } from './provisionar-usuario-dialog.component';
 import { ResetPasswordDialogComponent } from './reset-password-dialog.component';
 import { TokenStoragePort } from '../../../infrastructure/auth/storage/token-storage.port';
+import { hasTokenRole } from '../../../core/auth/jwt-claims';
 
 @Component({
   selector: 'app-admin-personas',
@@ -50,6 +51,7 @@ export class AdminPersonasComponent implements OnInit {
     { label: 'Bajas', value: false },
   ] as const;
   readonly unidadesFiltradas = computed(() => {
+    // Si el texto coincide con la selección actual, al reabrir se muestran todas las opciones.
     const selectedLabel = this.unidadMedicaId() === null
       ? 'Todas las unidades'
       : this.unidadesMedicas().find((unidad) => unidad.id === this.unidadMedicaId())?.nombre ?? '';
@@ -65,7 +67,7 @@ export class AdminPersonasComponent implements OnInit {
     const search = enteredSearch === normalize(selectedLabel) ? '' : enteredSearch;
     return search ? this.estados.filter((estado) => normalize(estado.label).includes(search)) : this.estados;
   });
-  readonly isAdminTic = signal(hasRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC'));
+  readonly isAdminTic = signal(hasTokenRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC'));
 
   ngOnInit(): void {
     this.queryChanges.pipe(
@@ -193,18 +195,4 @@ export class AdminPersonasComponent implements OnInit {
 
 function normalize(value: string): string {
   return value.trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-function hasRole(accessToken: string | null, role: string): boolean {
-  if (!accessToken) return false;
-  try {
-    const encodedPayload = accessToken.split('.')[1];
-    if (!encodedPayload) return false;
-    const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
-    const payload = JSON.parse(atob(base64)) as Record<string, unknown>;
-    const claim = payload['role'] ?? payload['roles'] ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-    return (Array.isArray(claim) ? claim : [claim]).includes(role);
-  } catch {
-    return false;
-  }
 }

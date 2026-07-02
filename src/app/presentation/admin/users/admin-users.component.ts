@@ -72,9 +72,11 @@ export class AdminUsersComponent implements OnInit {
     this.dialog.open(ManageUserRolesDialogComponent, { width: '600px', maxWidth: '95vw', data: { user, availableRoles: this.roles() } })
       .afterClosed().subscribe((selectedRoles: string[] | undefined) => {
         if (!selectedRoles) return;
+        // ADMIN_TIC se muestra como protegido y queda fuera del cálculo de altas y bajas.
         const current = user.roles.filter((role) => role.code !== 'ADMIN_TIC').map((role) => role.code);
         const additions = selectedRoles.filter((role) => !current.includes(role));
         const removals = current.filter((role) => !selectedRoles.includes(role));
+        // Enviamos únicamente las diferencias, no todos los roles seleccionados.
         const actions = [
           ...additions.map((role) => this.api.assignRole(user.id, role)),
           ...removals.map((role) => this.api.revokeRole(user.id, role)),
