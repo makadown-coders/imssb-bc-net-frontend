@@ -1,22 +1,50 @@
 @if (showNavigation()) {
-<mat-toolbar color="primary" class="app-toolbar">
-  <div class="brand-block">
-    <span class="brand-line"><img alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" src="imssb-logo-blanco.png"></span>
-    @if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}
-  </div>
-  <button mat-icon-button class="menu-toggle" type="button" aria-label="Abrir menú principal" aria-controls="main-navigation" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()">
-    <mat-icon>{{ mobileNavigationOpen() ? 'close' : 'menu' }}</mat-icon>
-  </button>
-  <nav id="main-navigation" class="app-nav" [class.is-open]="mobileNavigationOpen()" aria-label="Principal">
-    <a mat-button routerLink="/dashboard" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>dashboard</mat-icon>Dashboard</a>
-    @if (canAccessSolicitudes()) {<a mat-button routerLink="/solicitudes" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>assignment</mat-icon>Solicitudes</a>}
-    @if (isAdminTic()) {
-      <a mat-button routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>list_alt</mat-icon>Catálogos</a>
-      <a mat-button routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>groups</mat-icon>Personas</a>
-      <a mat-button routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>manage_accounts</mat-icon>Usuarios</a>
-    }
-  </nav>
-</mat-toolbar>
-}
+  <mat-sidenav-container class="shell-container">
+    <mat-sidenav
+      class="app-sidebar"
+      [mode]="isMobile() ? 'over' : 'side'"
+      [opened]="!isMobile() || mobileNavigationOpen()"
+      [fixedInViewport]="isMobile()"
+      (closedStart)="mobileNavigationOpen.set(false)">
+      <div class="sidebar-brand">
+        <img src="imssb-logo-blanco.png" alt="IMSS Bienestar" />
+        <button mat-icon-button type="button" class="sidebar-close" aria-label="Cerrar menú principal" (click)="closeNavigation()"><mat-icon>close</mat-icon></button>
+      </div>
 
-<main class="app-main" [class.login-main]="!showNavigation()"><router-outlet /></main>
+      <nav mat-nav-list aria-label="Navegación principal" class="sidebar-nav">
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeNavigation()">
+          <mat-icon matListItemIcon>dashboard</mat-icon><span matListItemTitle>Dashboard</span>
+        </a>
+
+        @if (canAccessSolicitudes()) {
+          <section class="nav-section" [class.section-active]="isAbastoRoute()" aria-labelledby="requests-section-title">
+            <h2 id="requests-section-title" class="section-title">Gestión de Solicitudes</h2>
+            <a mat-list-item routerLink="/solicitudes" routerLinkActive="is-active" (click)="closeNavigation()">
+              <mat-icon matListItemIcon>assignment</mat-icon><span matListItemTitle>Solicitudes</span>
+            </a>
+          </section>
+        }
+
+        @if (isAdminTic()) {
+          <section class="nav-section" aria-labelledby="admin-section-title">
+            <h2 id="admin-section-title" class="section-title">Administración</h2>
+            <a mat-list-item routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon matListItemIcon>list_alt</mat-icon><span matListItemTitle>Catálogos</span></a>
+            <a mat-list-item routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon matListItemIcon>groups</mat-icon><span matListItemTitle>Personas</span></a>
+            <a mat-list-item routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon matListItemIcon>manage_accounts</mat-icon><span matListItemTitle>Usuarios</span></a>
+          </section>
+        }
+      </nav>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="shell-content">
+      <mat-toolbar class="app-toolbar">
+        <button mat-icon-button class="menu-toggle" type="button" aria-label="Abrir menú principal" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()"><mat-icon>menu</mat-icon></button>
+        <img class="mobile-logo" src="imssb-logo-blanco.png" alt="IMSS Bienestar" />
+        @if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}
+      </mat-toolbar>
+      <main class="app-main"><router-outlet /></main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+} @else {
+  <main class="app-main login-main"><router-outlet /></main>
+}
