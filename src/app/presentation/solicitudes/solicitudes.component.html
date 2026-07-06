@@ -1,0 +1,36 @@
+<section class="requests-page">
+  <header class="page-header">
+    <div><span class="eyebrow">Abasto</span><h1>Nueva solicitud</h1><p>Captura los datos de la unidad y agrega las claves requeridas.</p></div>
+    <button mat-stroked-button type="button" (click)="clear()"><mat-icon>restart_alt</mat-icon>Limpiar captura</button>
+  </header>
+
+  @if (draftRestored()) { <div class="draft-notice" role="status"><mat-icon>cloud_done</mat-icon><span>Recuperamos el borrador guardado en este equipo.</span></div> }
+
+  <mat-stepper orientation="vertical" [linear]="true">
+    <mat-step [stepControl]="datosForm" label="Datos de la solicitud">
+      <form class="details-grid" [formGroup]="datosForm">
+        <mat-form-field appearance="outline" class="wide"><mat-label>Unidad médica</mat-label><input matInput [formControl]="unidadSearch" [matAutocomplete]="unitAuto" autocomplete="off" />@if (loadingUnits()) {<mat-spinner matSuffix diameter="20" />}<mat-autocomplete #unitAuto="matAutocomplete" [displayWith]="displayUnit" (optionSelected)="selectUnit($event)">@for (unit of unidadesFiltradas(); track unit.id) {<mat-option [value]="unit"><strong>{{ unit.nombre }}</strong><small>{{ unit.cluesimb }} · {{ unit.municipio || 'Sin municipio' }}</small></mat-option>}</mat-autocomplete>@if (datosForm.controls.unidad.touched && datosForm.controls.unidad.invalid) {<mat-error>Selecciona una unidad de la lista.</mat-error>}</mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Tipo de insumo</mat-label><mat-select formControlName="tipoInsumo" (selectionChange)="persist()">@for (type of tiposInsumo; track type) {<mat-option [value]="type">{{ type }}</mat-option>}</mat-select></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Tipo de pedido</mat-label><mat-select formControlName="tipoPedido" (selectionChange)="persist()"><mat-option value="Ordinario">Ordinario</mat-option><mat-option value="Extraordinario">Extraordinario</mat-option></mat-select></mat-form-field>
+        <mat-form-field appearance="outline" class="wide"><mat-label>Responsable de captura</mat-label><input matInput formControlName="responsableCaptura" maxlength="150" (blur)="persist()" />@if (datosForm.controls.responsableCaptura.touched && datosForm.controls.responsableCaptura.invalid) {<mat-error>Ingresa el nombre de la persona responsable.</mat-error>}</mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Fecha inicial</mat-label><input matInput [matDatepicker]="startPicker" formControlName="fechaInicio" (dateChange)="persist()" /><mat-datepicker-toggle matIconSuffix [for]="startPicker" /><mat-datepicker #startPicker /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Fecha final</mat-label><input matInput [matDatepicker]="endPicker" formControlName="fechaFin" (dateChange)="persist()" /><mat-datepicker-toggle matIconSuffix [for]="endPicker" /><mat-datepicker #endPicker />@if (datosForm.hasError('dateRange')) {<mat-error>La fecha final no puede ser anterior a la inicial.</mat-error>}</mat-form-field>
+      </form>
+      <div class="step-actions"><button mat-flat-button color="primary" matStepperNext [disabled]="datosForm.invalid">Continuar<mat-icon>arrow_forward</mat-icon></button></div>
+    </mat-step>
+
+    <mat-step label="Artículos">
+      <mat-card class="capture-card"><mat-card-content>
+        <div class="article-grid">
+          <mat-form-field appearance="outline" class="article-search"><mat-label>Clave o descripción</mat-label><mat-icon matPrefix>search</mat-icon><input matInput [formControl]="articuloSearch" [matAutocomplete]="articleAuto" autocomplete="off" />@if (searching()) {<mat-spinner matSuffix diameter="20" />}<mat-hint>Escribe al menos tres caracteres.</mat-hint><mat-autocomplete #articleAuto="matAutocomplete" [displayWith]="displayArticle" (optionSelected)="selectArticle($event)">@for (article of resultados(); track article.clave) {<mat-option [value]="article"><strong>{{ article.clave }}</strong><small>{{ article.descripcion }}</small></mat-option>}</mat-autocomplete></mat-form-field>
+          <form class="article-fields" [formGroup]="articuloForm" (ngSubmit)="addArticle()"><mat-form-field appearance="outline"><mat-label>Cantidad</mat-label><input matInput type="number" min="1" max="99999" formControlName="cantidad" /></mat-form-field><mat-form-field appearance="outline"><mat-label>Observaciones</mat-label><input matInput maxlength="300" formControlName="observaciones" /></mat-form-field><button mat-flat-button color="primary" type="submit" [disabled]="!selectedArticle()"><mat-icon>add</mat-icon>Agregar</button></form>
+        </div>
+      </mat-card-content></mat-card>
+
+      @if (articulos().length) {
+        <div class="table-panel"><div class="table-summary"><span><strong>{{ articulos().length }}</strong> claves</span><span><strong>{{ totalPiezas() }}</strong> piezas</span></div><div class="table-scroll"><table mat-table [dataSource]="articulos()"><ng-container matColumnDef="clave"><th mat-header-cell *matHeaderCellDef>Clave</th><td mat-cell *matCellDef="let item"><strong>{{ item.clave }}</strong></td></ng-container><ng-container matColumnDef="descripcion"><th mat-header-cell *matHeaderCellDef>Descripción</th><td mat-cell *matCellDef="let item">{{ item.descripcion }}</td></ng-container><ng-container matColumnDef="presentacion"><th mat-header-cell *matHeaderCellDef>Presentación</th><td mat-cell *matCellDef="let item">{{ item.presentacion || '—' }}</td></ng-container><ng-container matColumnDef="cantidad"><th mat-header-cell *matHeaderCellDef>Cantidad</th><td mat-cell *matCellDef="let item; let i = index"><input class="inline-input quantity" type="number" min="1" max="99999" [value]="item.cantidad" (change)="updateQuantity(i, $any($event.target).value)" /></td></ng-container><ng-container matColumnDef="observaciones"><th mat-header-cell *matHeaderCellDef>Observaciones</th><td mat-cell *matCellDef="let item; let i = index"><input class="inline-input notes" maxlength="300" [value]="item.observaciones" (change)="updateNotes(i, $any($event.target).value)" /></td></ng-container><ng-container matColumnDef="acciones"><th mat-header-cell *matHeaderCellDef><span class="sr-only">Acciones</span></th><td mat-cell *matCellDef="let item; let i = index"><button mat-icon-button type="button" aria-label="Eliminar artículo" (click)="removeArticle(i)"><mat-icon>delete</mat-icon></button></td></ng-container><tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr><tr mat-row *matRowDef="let row; columns: displayedColumns"></tr></table></div></div>
+      } @else { <div class="empty-state"><mat-icon>inventory_2</mat-icon><h2>Aún no hay artículos</h2><p>Busca una clave y agrégala a la solicitud.</p></div> }
+      <div class="step-actions split"><button mat-button matStepperPrevious><mat-icon>arrow_back</mat-icon>Regresar</button><button mat-flat-button color="primary" type="button" (click)="submit()" [disabled]="!articulos().length || saving()">@if (saving()) {<mat-spinner diameter="20" />} @else {<mat-icon>send</mat-icon>}Registrar solicitud</button></div>
+    </mat-step>
+  </mat-stepper>
+</section>

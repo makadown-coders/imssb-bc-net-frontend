@@ -9,6 +9,7 @@
   </button>
   <nav id="main-navigation" class="app-nav" [class.is-open]="mobileNavigationOpen()" aria-label="Principal">
     <a mat-button routerLink="/dashboard" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>dashboard</mat-icon>Dashboard</a>
+    @if (canAccessSolicitudes()) {<a mat-button routerLink="/solicitudes" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>assignment</mat-icon>Solicitudes</a>}
     @if (isAdminTic()) {
       <a mat-button routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>list_alt</mat-icon>Catálogos</a>
       <a mat-button routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>groups</mat-icon>Personas</a>

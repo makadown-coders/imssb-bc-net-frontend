@@ -23,6 +23,12 @@ export class ShellComponent implements OnInit {
     this.authStore.isAuthenticated();
     return hasTokenRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC');
   });
+  readonly canAccessSolicitudes = computed(() => {
+    this.authStore.isAuthenticated();
+    const token = this.tokenStorage.getAccessToken();
+    return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO']
+      .some((role) => hasTokenRole(token, role));
+  });
 
   constructor(readonly authStore: AuthStore) {}
 

@@ -9,12 +9,13 @@ import { LocalStorageTokenStorageService } from './infrastructure/auth/storage/t
 import { TokenStoragePort } from './infrastructure/auth/storage/token-storage.port';
 import { authErrorInterceptor } from './core/interceptors/auth-error.interceptor';
 import { authTokenInterceptor } from './core/interceptors/auth-token.interceptor';
+import { globalLoadingInterceptor } from './core/interceptors/global-loading.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authTokenInterceptor, authErrorInterceptor])),
+    provideHttpClient(withInterceptors([globalLoadingInterceptor, authTokenInterceptor, authErrorInterceptor])),
     provideAnimationsAsync(),
     { provide: AuthRepository, useExisting: AuthApiService },
     { provide: TokenStoragePort, useExisting: LocalStorageTokenStorageService },

@@ -1,97 +1,28 @@
 <section class="dashboard-page">
   <div class="dashboard-grid">
     <mat-card>
-      <mat-card-header>
-        <mat-card-title>Usuario actual</mat-card-title>
-      </mat-card-header>
+      <mat-card-header><mat-card-title>Usuario actual</mat-card-title></mat-card-header>
       <mat-card-content>
         @if (authStore.currentUser(); as user) {
           <dl class="user-details">
-            <div>
-              <dt>Email</dt>
-              <dd>{{ user.email }}</dd>
-            </div>
-            <div>
-              <dt>Id</dt>
-              <dd>{{ user.id }}</dd>
-            </div>
-            <div>
-              <dt>CreatedAt</dt>
-              <dd>{{ user.createdAt | date: 'medium' }}</dd>
-            </div>
+            <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
+            <div><dt>Id</dt><dd>{{ user.id }}</dd></div>
+            <div><dt>Creado</dt><dd>{{ user.createdAt | date: 'medium' }}</dd></div>
           </dl>
         } @else if (authStore.isLoading()) {
-          <div class="loading-state">
-            <mat-spinner diameter="28" />
-          </div>
+          <div class="loading-state"><mat-spinner diameter="28" /></div>
         }
       </mat-card-content>
-      <mat-card-actions>
-        <button mat-stroked-button color="warn" type="button" (click)="logout()" [disabled]="authStore.isLoading()">
-          <mat-icon>logout</mat-icon>
-          <span>Cerrar sesión</span>
-        </button>
+      <mat-card-actions class="account-actions">
+        <a mat-stroked-button routerLink="/cambiar-contrasena"><mat-icon>password</mat-icon><span>Cambiar contraseña</span></a>
+        <button mat-stroked-button color="warn" type="button" (click)="logout()" [disabled]="authStore.isLoading()"><mat-icon>logout</mat-icon><span>Cerrar sesión</span></button>
       </mat-card-actions>
     </mat-card>
 
     <mat-card>
-      <mat-card-header>
-        <mat-card-title>Cambiar contraseña</mat-card-title>
-        <mat-card-subtitle>Al guardar deberás iniciar sesión nuevamente.</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <form class="password-form" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-          <mat-form-field appearance="outline">
-            <mat-label>Contraseña actual</mat-label>
-            <input matInput type="password" formControlName="currentPassword" autocomplete="current-password" />
-            @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.hasError('required')) {
-              <mat-error>La contraseña actual es obligatoria.</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Nueva contraseña</mat-label>
-            <input matInput type="password" formControlName="newPassword" autocomplete="new-password" />
-            <mat-hint>Entre 12 y 128 caracteres.</mat-hint>
-            @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
-              <mat-error>Ingresa al menos 12 caracteres.</mat-error>
-            }
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Confirmar nueva contraseña</mat-label>
-            <input matInput type="password" formControlName="confirmation" autocomplete="new-password" />
-            @if (passwordForm.controls.confirmation.touched && passwordForm.controls.newPassword.value !== passwordForm.controls.confirmation.value) {
-              <mat-error>Las contraseñas no coinciden.</mat-error>
-            }
-          </mat-form-field>
-          <button mat-flat-button color="primary" type="submit" [disabled]="passwordLoading()">
-            @if (passwordLoading()) { <mat-spinner diameter="20" /> } @else { <mat-icon>password</mat-icon> }
-            <span>Actualizar contraseña</span>
-          </button>
-        </form>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>Ping público</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        @if (pingResult(); as ping) {
-          <pre>{{ ping | json }}</pre>
-        } @else {
-          <p class="empty-state">Sin resultado todavía.</p>
-        }
-      </mat-card-content>
-      <mat-card-actions>
-        <button class="imssb-primary-button" type="button" (click)="testPing()" [disabled]="pingLoading()">
-          @if (pingLoading()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            <mat-icon>wifi_tethering</mat-icon>
-          }
-          <span>Probar ping</span>
-        </button>
-      </mat-card-actions>
+      <mat-card-header><mat-card-title>Ping público</mat-card-title></mat-card-header>
+      <mat-card-content>@if (pingResult(); as ping) {<pre>{{ ping | json }}</pre>} @else {<p class="empty-state">Sin resultado todavía.</p>}</mat-card-content>
+      <mat-card-actions><button class="imssb-primary-button" type="button" (click)="testPing()" [disabled]="pingLoading()">@if (pingLoading()) {<mat-spinner diameter="20" />} @else {<mat-icon>wifi_tethering</mat-icon>}<span>Probar ping</span></button></mat-card-actions>
     </mat-card>
   </div>
 </section>

@@ -25,3 +25,14 @@ export const adminTicGuard: CanActivateFn = (): boolean | UrlTree => {
     ? true
     : router.createUrlTree(['/dashboard']);
 };
+
+const solicitudesRoles = ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'] as const;
+
+export const solicitudesGuard: CanActivateFn = (): boolean | UrlTree => {
+  const tokenStorage = inject(TokenStoragePort);
+  const router = inject(Router);
+  const token = tokenStorage.getAccessToken();
+  return solicitudesRoles.some((role) => hasTokenRole(token, role))
+    ? true
+    : router.createUrlTree(['/dashboard']);
+};

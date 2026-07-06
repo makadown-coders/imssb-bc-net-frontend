@@ -1,0 +1,15 @@
+@if (visible()) {
+  <div class="loader-backdrop" role="status" aria-live="polite" aria-busy="true">
+    <section class="loader-card">
+      <mat-spinner diameter="48" />
+      <div>
+        <p class="loader-title">{{ loading.message() }}</p>
+        @if (takingLonger()) {
+          <p class="loader-detail">El servidor puede estar despertando. Esto puede tardar unos segundos; no cierres esta ventana.</p>
+        } @else {
+          <p class="loader-detail">Espera un momento, por favor.</p>
+        }
+      </div>
+    </section>
+  </div>
+}

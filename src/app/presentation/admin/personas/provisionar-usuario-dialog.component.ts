@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -23,6 +23,7 @@ export class ProvisionarUsuarioDialogComponent {
   private readonly formBuilder = inject(UntypedFormBuilder);
   private readonly dialogRef = inject<MatDialogRef<ProvisionarUsuarioDialogComponent, ProvisionarUsuarioRequest>>(MatDialogRef);
   readonly data = inject<ProvisionarUsuarioDialogData>(MAT_DIALOG_DATA);
+  readonly submitted = signal(false);
 
   readonly form = this.formBuilder.group({
     roleCode: ['', Validators.required],
@@ -31,6 +32,7 @@ export class ProvisionarUsuarioDialogComponent {
   });
 
   save(): void {
+    this.submitted.set(true);
     if (this.form.invalid || this.form.controls['password'].value !== this.form.controls['passwordConfirmation'].value) {
       this.form.markAllAsTouched();
       return;
