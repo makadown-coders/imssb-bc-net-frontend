@@ -8,18 +8,36 @@ export interface UnidadSolicitud {
   municipio: string;
   localidad: string;
   esSegundoNivel: boolean;
+  nivelAtencion?: string;
+  tipoUnidad?: string;
 }
 
 export interface ArticuloCatalogo {
   clave: string;
   descripcion: string;
   presentacion: string;
+  cpm?: number;
+  existenciaUnidad?: number;
+  existenciaEstatal?: number;
+  existenciasAzm?: number;
+  existenciasAze?: number;
+  existenciasAzt?: number;
+  enKit?: boolean;
+  homologos?: number;
+  existenciaHomologosEstatal?: number;
+  mejorAlmacen?: string;
+  recomendacionAbasto?: string;
+  mejorHomologoClave?: string;
+  mejorHomologoStock?: number;
+  mejorHomologoAlmacen?: string;
 }
 
 export interface ArticuloSolicitud extends ArticuloCatalogo {
   cantidad: number;
   observaciones: string;
 }
+
+export type NivelCaptura = 'PRIMER_NIVEL' | 'SEGUNDO_NIVEL';
 
 export interface DatosSolicitud {
   unidad: UnidadSolicitud;

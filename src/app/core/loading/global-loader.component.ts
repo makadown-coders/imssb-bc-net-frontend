@@ -1,10 +1,10 @@
 import { Component, OnDestroy, effect, inject, signal } from '@angular/core';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { GlobalLoadingService } from './global-loading.service';
 
 @Component({
   selector: 'app-global-loader',
-  imports: [MatProgressSpinnerModule],
+  imports: [HlmSpinner],
   templateUrl: './global-loader.component.html',
   styleUrl: './global-loader.component.scss',
 })

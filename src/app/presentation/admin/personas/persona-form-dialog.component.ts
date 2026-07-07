@@ -1,11 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
 import { startWith } from 'rxjs';
 import { UnidadMedica } from '../../../domain/catalogos/models/catalogo.model';
 import { Persona } from '../../../domain/personas/models/persona.model';
@@ -18,14 +17,14 @@ export interface PersonaFormDialogData {
 
 @Component({
   selector: 'app-persona-form-dialog',
-  imports: [ReactiveFormsModule, MatAutocompleteModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [ReactiveFormsModule, HlmButton, HlmCheckbox, HlmInput, HlmLabel],
   templateUrl: './persona-form-dialog.component.html',
   styleUrl: './persona-form-dialog.component.scss',
 })
 export class PersonaFormDialogComponent {
   private readonly formBuilder = inject(UntypedFormBuilder);
-  private readonly dialogRef = inject<MatDialogRef<PersonaFormDialogComponent, PersonaRequest>>(MatDialogRef);
-  readonly data = inject<PersonaFormDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject<BrnDialogRef<PersonaRequest>>(BrnDialogRef);
+  readonly data = injectBrnDialogContext<PersonaFormDialogData>();
 
   readonly form = this.formBuilder.group({
     nombres: [this.data.persona?.nombres ?? '', [Validators.required, Validators.maxLength(150)]],
@@ -60,6 +59,9 @@ export class PersonaFormDialogComponent {
   clearUnidad(): void {
     this.unidadSeleccionada.setValue(null);
   }
+  selectUnidad(value: string): void { this.unidadSeleccionada.setValue(this.data.unidadesMedicas.find((unidad) => String(unidad.id) === value) ?? null); }
+  selectedUnidadId(): number | '' { const value = this.unidadSeleccionada.value; return typeof value === 'object' && value ? value.id : ''; }
+  cancel(): void { this.dialogRef.close(); }
 
   save(): void {
     if (this.form.invalid) {

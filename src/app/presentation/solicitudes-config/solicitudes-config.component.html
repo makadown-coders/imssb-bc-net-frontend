@@ -1,0 +1,190 @@
+<section class="config-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Gestión de Solicitudes</span>
+      <h1>Configuración de feature flags</h1>
+      <p>Administra comportamientos de solicitudes sin desplegar código y con alcance global, por nivel o por unidad.</p>
+    </div>
+
+    <div class="header-actions">
+      <span class="meta-chip">
+        <ng-icon name="lucideClipboardList" />
+        {{ allRowsCount() }} registros configurados
+      </span>
+
+      <button hlmBtn variant="outline" type="button" (click)="reload()" [disabled]="loading() || metadataLoading()">
+        @if (metadataLoading()) {
+          <hlm-spinner />
+        } @else {
+          <ng-icon name="lucideRefreshCw" />
+        }
+        Recargar
+      </button>
+    </div>
+  </header>
+
+  <section hlmCard class="scope-card">
+    <div hlmCardContent class="scope-content">
+      <div class="scope-grid">
+        <div class="scope-selector">
+          <span class="field-label">Ámbito</span>
+
+          <div class="scope-options">
+            <button type="button" class="scope-pill" [class.is-active]="scopeForm.controls.scope.value === 'global'" (click)="selectScope('global')">
+              <ng-icon name="lucideSettings2" />
+              Global
+            </button>
+
+            <button type="button" class="scope-pill" [class.is-active]="scopeForm.controls.scope.value === 'nivel'" (click)="selectScope('nivel')">
+              <ng-icon name="lucideSlidersHorizontal" />
+              Nivel
+            </button>
+
+            <button type="button" class="scope-pill" [class.is-active]="scopeForm.controls.scope.value === 'clues'" (click)="selectScope('clues')">
+              <ng-icon name="lucideClipboardList" />
+              Unidad
+            </button>
+          </div>
+        </div>
+
+        @if (scopeForm.controls.scope.value === 'nivel') {
+          <app-searchable-select
+            class="field-block"
+            label="Nivel de atención"
+            placeholder="Selecciona nivel"
+            searchPlaceholder="Buscar nivel"
+            [options]="[
+              { label: 'Primer nivel', value: 'PRIMER_NIVEL', keywords: 'primer nivel' },
+              { label: 'Segundo nivel', value: 'SEGUNDO_NIVEL', keywords: 'segundo nivel' }
+            ]"
+            [value]="scopeForm.controls.nivel.value"
+            (valueChange)="scopeForm.controls.nivel.setValue($event === 'PRIMER_NIVEL' ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL')" />
+        }
+
+        @if (scopeForm.controls.scope.value === 'clues') {
+          <app-searchable-select
+            class="field-block"
+            label="Unidad permitida"
+            placeholder="Selecciona una unidad"
+            searchPlaceholder="Buscar por nombre, alias o CLUES"
+            emptyLabel="Sin unidades disponibles"
+            [options]="unitOptions()"
+            [value]="scopeForm.controls.cluesimb.value"
+            [disabled]="unitsLoading()"
+            (valueChange)="onUnidadChange($event)" />
+        }
+      </div>
+
+      <div class="scope-summary">
+        <span class="summary-label">Editando:</span>
+        <strong>{{ selectedScopeLabel() }}</strong>
+      </div>
+    </div>
+  </section>
+
+  @if (scopeForm.controls.scope.value === 'clues' && !scopeForm.controls.cluesimb.value.trim()) {
+    <hlm-alert class="scope-alert">
+      <ng-icon name="lucideCircleAlert" />
+      <h4 hlmAlertTitle>Selecciona una unidad</h4>
+      <p hlmAlertDescription>Para editar flags por CLUES, primero elige una unidad de la allowlist global.</p>
+    </hlm-alert>
+  }
+
+  <section class="flags-layout">
+    <section hlmCard class="flags-card">
+      <div hlmCardContent class="flags-content">
+        <div class="card-heading">
+          <div>
+            <h2>Flags disponibles</h2>
+            <p>Los cambios se guardan en lote para el ámbito seleccionado.</p>
+          </div>
+
+          @if (loading()) {
+            <div class="loading-inline">
+              <hlm-spinner />
+              <span>Cargando configuración…</span>
+            </div>
+          }
+        </div>
+
+        <div class="flag-list">
+          @for (definition of definitions; track definition.key) {
+            <article class="flag-item" [class.flag-item--readonly]="definition.kind === 'json'">
+              <div class="flag-copy">
+                <div class="flag-title-row">
+                  <h3>{{ definition.title }}</h3>
+                  <span class="flag-key">{{ definition.key }}</span>
+                </div>
+                <p>{{ definition.description }}</p>
+              </div>
+
+              @if (definition.kind === 'boolean') {
+                <button
+                  type="button"
+                  class="toggle"
+                  [class.is-on]="flagEnabled(definition.key)"
+                  [disabled]="!canEditFlags()"
+                  (click)="updateFlag(definition.key, !flagEnabled(definition.key))">
+                  <span class="toggle-thumb"></span>
+                  <span class="toggle-label">{{ flagEnabled(definition.key) ? 'Activo' : 'Inactivo' }}</span>
+                </button>
+              } @else {
+                <div class="allowlist-editor">
+                  <textarea
+                    rows="7"
+                    [value]="currentAllowlistText()"
+                    [disabled]="!canEditFlags()"
+                    placeholder="Escribe un alias por línea"
+                    (input)="updateAllowlist($any($event.target).value)"></textarea>
+                  <small>Un alias por línea. También puedes pegar una lista separada por comas.</small>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <aside hlmCard class="summary-card">
+      <div hlmCardContent class="summary-content">
+        <h2>Resumen</h2>
+        <p>Antes de guardar, revisa el alcance y cuántos cambios llevamos.</p>
+
+        <div class="summary-box">
+          <span>Ámbito actual</span>
+          <strong>{{ selectedScopeLabel() }}</strong>
+        </div>
+
+        <div class="summary-box">
+          <span>Cambios pendientes</span>
+          <strong>{{ pendingChanges().length }}</strong>
+        </div>
+
+        @if (pendingChanges().length) {
+          <ul class="changes-list">
+            @for (key of pendingChanges(); track key) {
+              <li>{{ key }}</li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">No hay cambios pendientes.</p>
+        }
+
+        <div class="summary-actions">
+          <button hlmBtn variant="ghost" type="button" (click)="resetDraft()" [disabled]="saving() || loading()">
+            Restablecer
+          </button>
+
+          <button hlmBtn type="button" (click)="save()" [disabled]="!canSave()">
+            @if (saving()) {
+              <hlm-spinner />
+            } @else {
+              <ng-icon name="lucideSave" />
+            }
+            Guardar cambios
+          </button>
+        </div>
+      </div>
+    </aside>
+  </section>
+</section>

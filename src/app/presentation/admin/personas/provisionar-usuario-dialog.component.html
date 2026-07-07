@@ -1,30 +1,7 @@
-<h2 mat-dialog-title>Crear cuenta de acceso</h2>
-<mat-dialog-content [formGroup]="form" class="dialog-content">
-  <p>Se creará una cuenta para <strong>{{ data.persona.correoPrincipal }}</strong>.</p>
-
-  @if (submitted() && (form.invalid || form.controls['password'].value !== form.controls['passwordConfirmation'].value)) {
-    <div class="form-alert" role="alert">Revisa los campos marcados antes de crear la cuenta.</div>
-  }
-
-  <mat-form-field appearance="outline">
-    <mat-label>Rol inicial</mat-label>
-    <mat-select formControlName="roleCode">@for (role of data.roles; track role.code) {<mat-option [value]="role.code">{{ role.descripcion }} ({{ role.code }})</mat-option>}</mat-select>
-    @if (form.controls['roleCode'].touched && form.controls['roleCode'].hasError('required')) {<mat-error>Selecciona un rol para la cuenta.</mat-error>}
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Contraseña temporal</mat-label>
-    <input matInput type="password" formControlName="password" autocomplete="new-password" />
-    <mat-hint>Entre 12 y 128 caracteres.</mat-hint>
-    @if (form.controls['password'].touched && form.controls['password'].hasError('required')) {<mat-error>Ingresa una contraseña temporal.</mat-error>}
-    @if (form.controls['password'].touched && (form.controls['password'].hasError('minlength') || form.controls['password'].hasError('maxlength'))) {<mat-error>La contraseña debe tener entre 12 y 128 caracteres.</mat-error>}
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Confirmar contraseña</mat-label>
-    <input matInput type="password" formControlName="passwordConfirmation" autocomplete="new-password" />
-    @if (form.controls['passwordConfirmation'].touched && form.controls['passwordConfirmation'].hasError('required')) {<mat-error>Confirma la contraseña temporal.</mat-error>}
-    @if (form.controls['passwordConfirmation'].touched && !form.controls['passwordConfirmation'].hasError('required') && form.controls['password'].value !== form.controls['passwordConfirmation'].value) {<mat-error>Las contraseñas no coinciden.</mat-error>}
-  </mat-form-field>
-</mat-dialog-content>
-<mat-dialog-actions align="end"><button mat-button mat-dialog-close type="button">Cancelar</button><button mat-flat-button color="primary" type="button" (click)="save()">Crear cuenta</button></mat-dialog-actions>
+<header class="dialog-header"><h2>Crear cuenta de acceso</h2><p>Se creará una cuenta para <strong>{{ data.persona.correoPrincipal }}</strong>.</p></header>
+<div [formGroup]="form" class="dialog-content">
+  @if (submitted() && (form.invalid || form.controls['password'].value !== form.controls['passwordConfirmation'].value)) {<div class="form-alert" role="alert">Revisa los campos marcados antes de crear la cuenta.</div>}
+  <label class="form-field"><span hlmLabel>Rol inicial</span><select formControlName="roleCode"><option value="">Selecciona un rol</option>@for (role of data.roles; track role.code) {<option [value]="role.code">{{ role.descripcion }} ({{ role.code }})</option>}</select>@if (form.controls['roleCode'].touched && form.controls['roleCode'].hasError('required')) {<p class="field-error">Selecciona un rol para la cuenta.</p>}</label>
+  <label class="form-field"><span hlmLabel>Contraseña temporal</span><input hlmInput type="password" formControlName="password" autocomplete="new-password" /><p class="field-hint">Entre 12 y 128 caracteres.</p>@if (form.controls['password'].touched && form.controls['password'].invalid) {<p class="field-error">La contraseña debe tener entre 12 y 128 caracteres.</p>}</label>
+  <label class="form-field"><span hlmLabel>Confirmar contraseña</span><input hlmInput type="password" formControlName="passwordConfirmation" autocomplete="new-password" />@if (form.controls['passwordConfirmation'].touched && form.controls['password'].value !== form.controls['passwordConfirmation'].value) {<p class="field-error">Las contraseñas no coinciden.</p>}</label>
+</div><footer class="dialog-actions"><button hlmBtn variant="ghost" type="button" (click)="cancel()">Cancelar</button><button hlmBtn type="button" (click)="save()">Crear cuenta</button></footer>

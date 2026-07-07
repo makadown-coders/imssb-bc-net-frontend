@@ -1,7 +1,7 @@
 @if (visible()) {
   <div class="loader-backdrop" role="status" aria-live="polite" aria-busy="true">
     <section class="loader-card">
-      <mat-spinner diameter="48" />
+      <hlm-spinner class="global-spinner" aria-label="Procesando solicitud" />
       <div>
         <p class="loader-title">{{ loading.message() }}</p>
         @if (takingLonger()) {

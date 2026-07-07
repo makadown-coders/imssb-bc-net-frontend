@@ -1,6 +1,5 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { AuthRepository } from './domain/auth/repositories/auth.repository';
@@ -16,7 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([globalLoadingInterceptor, authTokenInterceptor, authErrorInterceptor])),
-    provideAnimationsAsync(),
     { provide: AuthRepository, useExisting: AuthApiService },
     { provide: TokenStoragePort, useExisting: LocalStorageTokenStorageService },
   ],

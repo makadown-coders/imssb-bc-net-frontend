@@ -1,28 +1,21 @@
 <section class="dashboard-page">
   <div class="dashboard-grid">
-    <mat-card>
-      <mat-card-header><mat-card-title>Usuario actual</mat-card-title></mat-card-header>
-      <mat-card-content>
+    <section hlmCard>
+      <div hlmCardHeader><h2 hlmCardTitle>Usuario actual</h2></div>
+      <div hlmCardContent>
         @if (authStore.currentUser(); as user) {
-          <dl class="user-details">
-            <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
-            <div><dt>Id</dt><dd>{{ user.id }}</dd></div>
-            <div><dt>Creado</dt><dd>{{ user.createdAt | date: 'medium' }}</dd></div>
-          </dl>
-        } @else if (authStore.isLoading()) {
-          <div class="loading-state"><mat-spinner diameter="28" /></div>
-        }
-      </mat-card-content>
-      <mat-card-actions class="account-actions">
-        <a mat-stroked-button routerLink="/cambiar-contrasena"><mat-icon>password</mat-icon><span>Cambiar contraseña</span></a>
-        <button mat-stroked-button color="warn" type="button" (click)="logout()" [disabled]="authStore.isLoading()"><mat-icon>logout</mat-icon><span>Cerrar sesión</span></button>
-      </mat-card-actions>
-    </mat-card>
-
-    <mat-card>
-      <mat-card-header><mat-card-title>Ping público</mat-card-title></mat-card-header>
-      <mat-card-content>@if (pingResult(); as ping) {<pre>{{ ping | json }}</pre>} @else {<p class="empty-state">Sin resultado todavía.</p>}</mat-card-content>
-      <mat-card-actions><button class="imssb-primary-button" type="button" (click)="testPing()" [disabled]="pingLoading()">@if (pingLoading()) {<mat-spinner diameter="20" />} @else {<mat-icon>wifi_tethering</mat-icon>}<span>Probar ping</span></button></mat-card-actions>
-    </mat-card>
+          <dl class="user-details"><div><dt>Email</dt><dd>{{ user.email }}</dd></div><div><dt>Id</dt><dd>{{ user.id }}</dd></div><div><dt>Creado</dt><dd>{{ user.createdAt | date: 'medium' }}</dd></div></dl>
+        } @else if (authStore.isLoading()) {<div class="loading-state"><hlm-spinner /></div>}
+      </div>
+      <div hlmCardFooter class="account-actions">
+        <a hlmBtn variant="outline" routerLink="/cambiar-contrasena"><ng-icon name="lucideKeyRound" /><span>Cambiar contraseña</span></a>
+        <button hlmBtn variant="destructive" type="button" (click)="logout()" [disabled]="authStore.isLoading()"><ng-icon name="lucideLogOut" /><span>Cerrar sesión</span></button>
+      </div>
+    </section>
+    <section hlmCard>
+      <div hlmCardHeader><h2 hlmCardTitle>Ping público</h2></div>
+      <div hlmCardContent>@if (pingResult(); as ping) {<pre>{{ ping | json }}</pre>} @else {<p class="empty-state">Sin resultado todavía.</p>}</div>
+      <div hlmCardFooter><button hlmBtn type="button" (click)="testPing()" [disabled]="pingLoading()">@if (pingLoading()) {<hlm-spinner />} @else {<ng-icon name="lucideRadio" />}<span>Probar ping</span></button></div>
+    </section>
   </div>
 </section>

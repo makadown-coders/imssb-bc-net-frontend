@@ -1,12 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmTextarea } from '@spartan-ng/helm/textarea';
 
 export interface CatalogoFormField {
   key: string;
@@ -26,23 +25,14 @@ export interface CatalogoFormDialogData {
 
 @Component({
   selector: 'app-catalogo-form-dialog',
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatCheckboxModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatSelectModule,
-  ],
+  imports: [ReactiveFormsModule, HlmButton, HlmCheckbox, HlmInput, HlmLabel, HlmTextarea],
   templateUrl: './catalogo-form-dialog.component.html',
   styleUrl: './catalogo-form-dialog.component.scss',
 })
 export class CatalogoFormDialogComponent {
   private readonly formBuilder = inject(UntypedFormBuilder);
-  private readonly dialogRef = inject<MatDialogRef<CatalogoFormDialogComponent, Record<string, unknown>>>(MatDialogRef);
-  readonly data = inject<CatalogoFormDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject<BrnDialogRef<Record<string, unknown>>>(BrnDialogRef);
+  readonly data = injectBrnDialogContext<CatalogoFormDialogData>();
 
   readonly form = this.formBuilder.group({});
 
@@ -72,6 +62,7 @@ export class CatalogoFormDialogComponent {
 
     this.dialogRef.close(this.form.getRawValue());
   }
+  cancel(): void { this.dialogRef.close(); }
 
   private initialValue(field: CatalogoFormField): unknown {
     if (!this.data.row) {

@@ -1,10 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
 import { Persona, Role } from '../../../domain/personas/models/persona.model';
 import { ProvisionarUsuarioRequest } from '../../../infrastructure/personas/api/personas-api.service';
 
@@ -15,14 +14,14 @@ export interface ProvisionarUsuarioDialogData {
 
 @Component({
   selector: 'app-provisionar-usuario-dialog',
-  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, HlmButton, HlmInput, HlmLabel],
   templateUrl: './provisionar-usuario-dialog.component.html',
   styleUrl: './provisionar-usuario-dialog.component.scss',
 })
 export class ProvisionarUsuarioDialogComponent {
   private readonly formBuilder = inject(UntypedFormBuilder);
-  private readonly dialogRef = inject<MatDialogRef<ProvisionarUsuarioDialogComponent, ProvisionarUsuarioRequest>>(MatDialogRef);
-  readonly data = inject<ProvisionarUsuarioDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject<BrnDialogRef<ProvisionarUsuarioRequest>>(BrnDialogRef);
+  readonly data = injectBrnDialogContext<ProvisionarUsuarioDialogData>();
   readonly submitted = signal(false);
 
   readonly form = this.formBuilder.group({
@@ -43,4 +42,5 @@ export class ProvisionarUsuarioDialogComponent {
       password: String(this.form.controls['password'].value),
     });
   }
+  cancel(): void { this.dialogRef.close(); }
 }

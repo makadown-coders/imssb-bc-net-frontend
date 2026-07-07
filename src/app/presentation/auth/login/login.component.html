@@ -1,44 +1,12 @@
 <section class="login-page">
-  <mat-card class="login-card">
-    <mat-card-header>
-      <mat-card-title>Iniciar sesion</mat-card-title>
-      <mat-card-subtitle>
-        <img class="login-logo" src="imssb-logo.svg" alt="IMSS Bienestar" />
-      </mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
+  <article hlmCard class="login-card">
+    <header hlmCardHeader class="login-header"><img class="login-logo" src="imssb-logo.svg" alt="IMSS Bienestar" /><h1 hlmCardTitle>Bienvenido</h1><p hlmCardDescription>Ingresa tus credenciales institucionales para continuar.</p></header>
+    <div hlmCardContent>
       <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Correo</mat-label>
-          <input matInput formControlName="email" type="email" autocomplete="username" />
-          <mat-icon matSuffix>mail</mat-icon>
-          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
-            <mat-error>El correo es obligatorio</mat-error>
-          }
-          @if (form.controls.email.hasError('email') && form.controls.email.touched) {
-            <mat-error>Ingresa un correo válido</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Contraseña</mat-label>
-          <input matInput formControlName="password" type="password" autocomplete="current-password" />
-          <mat-icon matSuffix>lock</mat-icon>
-          @if (form.controls.password.hasError('required') && form.controls.password.touched) {
-            <mat-error>La contraseña es obligatoria</mat-error>
-          }
-        </mat-form-field>
-
-        <button class="imssb-primary-button" type="submit" [disabled]="isLoading()">
-          @if (isLoading()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            <mat-icon>login</mat-icon>
-          }
-          <span>Entrar</span>
-        </button>
+        <div class="field-group"><label hlmLabel for="email">Correo institucional</label><div class="input-wrap"><ng-icon name="lucideMail" /><input hlmInput id="email" formControlName="email" type="email" autocomplete="username" placeholder="nombre@imssbienestar.gob.mx" /></div>@if (form.controls.email.touched && form.controls.email.invalid) {<p class="field-error">Ingresa un correo válido.</p>}</div>
+        <div class="field-group"><label hlmLabel for="password">Contraseña</label><div class="input-wrap"><ng-icon name="lucideLockKeyhole" /><input hlmInput id="password" formControlName="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" /></div>@if (form.controls.password.touched && form.controls.password.invalid) {<p class="field-error">La contraseña es obligatoria.</p>}</div>
+        <button hlmBtn size="lg" class="login-button" type="submit" [disabled]="isLoading()">@if (isLoading()) {<hlm-spinner aria-label="Iniciando sesión" />} @else {<ng-icon name="lucideLogIn" />}<span>Iniciar sesión</span></button>
       </form>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </article>
 </section>

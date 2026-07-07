@@ -1,20 +1,22 @@
 import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideKeyRound } from '@ng-icons/lucide';
+import { toast } from '@spartan-ng/brain/sonner';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { finalize } from 'rxjs';
 import { AuthStore } from '../../../application/auth/state/auth.store';
 import { ChangePasswordUseCase } from '../../../application/auth/use-cases/change-password.use-case';
 
 @Component({
   selector: 'app-change-password',
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSnackBarModule],
+  imports: [ReactiveFormsModule, NgIcon, HlmButton, HlmCardImports, HlmInput, HlmLabel, HlmSpinner],
+  providers: [provideIcons({ lucideKeyRound })],
   templateUrl: './change-password.component.html',
   styleUrl: './change-password.component.scss',
 })
@@ -22,7 +24,6 @@ export class ChangePasswordComponent {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly changePasswordUseCase = inject(ChangePasswordUseCase);
   private readonly authStore = inject(AuthStore);
-  private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   readonly saving = signal(false);
   readonly form = this.formBuilder.group({
@@ -41,10 +42,10 @@ export class ChangePasswordComponent {
     this.changePasswordUseCase.execute(currentPassword, newPassword).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
         this.authStore.clearSession();
-        this.snackBar.open('Contraseña actualizada. Inicia sesión nuevamente.', 'Cerrar', { duration: 4500 });
+        toast.success('Contraseña actualizada. Inicia sesión nuevamente.');
         void this.router.navigate(['/login']);
       },
-      error: () => this.snackBar.open('No fue posible cambiar la contraseña. Verifica la contraseña actual.', 'Cerrar', { duration: 4500 }),
+      error: () => toast.error('No fue posible cambiar la contraseña. Verifica la contraseña actual.'),
     });
   }
 }

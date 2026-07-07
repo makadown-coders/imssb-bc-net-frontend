@@ -1,50 +1,14 @@
 @if (showNavigation()) {
-  <mat-sidenav-container class="shell-container">
-    <mat-sidenav
-      class="app-sidebar"
-      [mode]="isMobile() ? 'over' : 'side'"
-      [opened]="!isMobile() || mobileNavigationOpen()"
-      [fixedInViewport]="isMobile()"
-      (closedStart)="mobileNavigationOpen.set(false)">
-      <div class="sidebar-brand">
-        <img src="imssb-logo-blanco.png" alt="IMSS Bienestar" />
-        <button mat-icon-button type="button" class="sidebar-close" aria-label="Cerrar menú principal" (click)="closeNavigation()"><mat-icon>close</mat-icon></button>
-      </div>
-
-      <nav mat-nav-list aria-label="Navegación principal" class="sidebar-nav">
-        <a class="nav-link root-link" routerLink="/dashboard" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeNavigation()">
-          <mat-icon>dashboard</mat-icon><span>Dashboard</span>
-        </a>
-
-        @if (canAccessSolicitudes()) {
-          <section class="nav-section" [class.section-active]="isAbastoRoute()" aria-labelledby="requests-section-title">
-            <h2 id="requests-section-title" class="section-title">Gestión de Solicitudes</h2>
-            <a class="nav-link" routerLink="/solicitudes" routerLinkActive="is-active" (click)="closeNavigation()">
-              <mat-icon>assignment</mat-icon><span>Solicitudes</span>
-            </a>
-          </section>
-        }
-
-        @if (isAdminTic()) {
-          <section class="nav-section" aria-labelledby="admin-section-title">
-            <h2 id="admin-section-title" class="section-title">Administración</h2>
-            <a class="nav-link" routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>list_alt</mat-icon><span>Catálogos</span></a>
-            <a class="nav-link" routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>groups</mat-icon><span>Personas</span></a>
-            <a class="nav-link" routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>manage_accounts</mat-icon><span>Usuarios</span></a>
-          </section>
-        }
+  <div class="shell-container">
+    @if (isMobile() && mobileNavigationOpen()) {<button class="sidebar-backdrop" type="button" aria-label="Cerrar menú" (click)="closeNavigation()"></button>}
+    <aside class="app-sidebar" [class.is-open]="!isMobile() || mobileNavigationOpen()" aria-label="Navegación principal">
+      <div class="sidebar-brand"><img src="imssb-logo-blanco.png" alt="IMSS Bienestar" /><button hlmBtn variant="ghost" size="icon" type="button" class="sidebar-close" aria-label="Cerrar menú principal" (click)="closeNavigation()"><ng-icon name="lucideX" /></button></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link root-link" routerLink="/dashboard" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeNavigation()"><ng-icon name="lucideLayoutDashboard" /><span>Dashboard</span></a>
+        @if (canAccessSolicitudes()) {<section class="nav-section" [class.section-active]="isAbastoRoute()" aria-labelledby="requests-title"><h2 id="requests-title" class="section-title">Gestión de Solicitudes</h2><a class="nav-link" routerLink="/solicitudes" routerLinkActive="is-active" (click)="closeNavigation()"><ng-icon name="lucideClipboardList" /><span>Solicitudes</span></a>@if (isAdminTic()) {<a class="nav-link" routerLink="/solicitudes-config" routerLinkActive="is-active" (click)="closeNavigation()"><ng-icon name="lucideSettings2" /><span>Configuración</span></a>}</section>}
+        @if (isAdminTic()) {<section class="nav-section" aria-labelledby="admin-title"><h2 id="admin-title" class="section-title">Administración</h2><a class="nav-link" routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><ng-icon name="lucideListTree" /><span>Catálogos</span></a><a class="nav-link" routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><ng-icon name="lucideUsers" /><span>Personas</span></a><a class="nav-link" routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><ng-icon name="lucideUserCog" /><span>Usuarios</span></a></section>}
       </nav>
-    </mat-sidenav>
-
-    <mat-sidenav-content class="shell-content">
-      <mat-toolbar class="app-toolbar">
-        <button mat-icon-button class="menu-toggle" type="button" aria-label="Abrir menú principal" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()"><mat-icon>menu</mat-icon></button>
-        <img class="mobile-logo" src="imssb-logo-blanco.png" alt="IMSS Bienestar" />
-        @if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}
-      </mat-toolbar>
-      <main class="app-main"><router-outlet /></main>
-    </mat-sidenav-content>
-  </mat-sidenav-container>
-} @else {
-  <main class="app-main login-main"><router-outlet /></main>
-}
+    </aside>
+    <section class="shell-content"><header class="app-toolbar"><button hlmBtn variant="ghost" size="icon" class="menu-toggle" type="button" aria-label="Abrir menú principal" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()"><ng-icon name="lucideMenu" /></button><img class="mobile-logo" src="imssb-logo-blanco.png" alt="IMSS Bienestar" />@if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}</header><main class="app-main"><router-outlet /></main></section>
+  </div>
+} @else {<main class="app-main login-main"><router-outlet /></main>}

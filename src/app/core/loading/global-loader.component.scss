@@ -24,6 +24,7 @@
 
 .loader-title { margin: 0 0 0.35rem; color: var(--imssb-green-900); font-size: 1.05rem; font-weight: 700; }
 .loader-detail { margin: 0; color: var(--imssb-muted); font-size: 0.9rem; line-height: 1.4; }
+.global-spinner { color: var(--imssb-green-700); font-size: 3rem; }
 
 @keyframes loader-fade-in { from { opacity: 0; } to { opacity: 1; } }
 

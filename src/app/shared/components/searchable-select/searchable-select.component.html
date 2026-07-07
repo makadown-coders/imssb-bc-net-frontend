@@ -1,0 +1,50 @@
+<label class="searchable-select" [attr.data-searchable-select-id]="rootId">
+  <span class="field-label">{{ label() }}</span>
+
+  <button
+    class="trigger"
+    type="button"
+    [class.is-open]="open()"
+    [disabled]="disabled()"
+    (click)="toggle()">
+    <span class="trigger-value" [class.is-placeholder]="!selectedOption()">
+      {{ selectedOption()?.label || placeholder() }}
+    </span>
+    <ng-icon name="lucideChevronsUpDown" />
+  </button>
+
+  @if (open()) {
+    <div class="panel" role="listbox" [attr.aria-label]="label()">
+      <div class="search-box">
+        <ng-icon name="lucideSearch" />
+        <input
+          hlmInput
+          type="text"
+          [value]="search()"
+          [placeholder]="searchPlaceholder()"
+          (input)="updateSearch($any($event.target).value)" />
+      </div>
+
+      <div class="options">
+        @if (filteredOptions().length === 0) {
+          <div class="empty">{{ emptyLabel() }}</div>
+        } @else {
+          @for (option of filteredOptions(); track $index) {
+            <button
+              class="option"
+              type="button"
+              role="option"
+              [attr.aria-selected]="isSelected(option.value, value())"
+              [class.is-selected]="isSelected(option.value, value())"
+              (click)="select(option)">
+              <span>{{ option.label }}</span>
+              @if (isSelected(option.value, value())) {
+                <ng-icon name="lucideCheck" />
+              }
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+</label>

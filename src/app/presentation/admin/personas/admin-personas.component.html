@@ -1,12 +1,120 @@
 <section class="personas-page">
-  <header class="page-header"><div><h1>Personas y usuarios</h1><p>Administra expedientes y aprovisiona cuentas de acceso.</p></div><button mat-flat-button color="primary" (click)="openForm(null)"><mat-icon>person_add</mat-icon>Nueva persona</button></header>
+  <header class="page-header">
+    <div>
+      <h1>Personas y usuarios</h1>
+      <p>Administra expedientes y aprovisiona cuentas de acceso.</p>
+    </div>
+
+    <button hlmBtn type="button" (click)="openForm(null)">
+      <ng-icon name="lucideUserPlus" />
+      Nueva persona
+    </button>
+  </header>
+
   <section class="table-panel">
     <div class="toolbar">
-      <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic"><mat-label>Nombre, correo, RFC o CURP</mat-label><mat-icon matPrefix>search</mat-icon><input matInput [value]="query()" (input)="search($any($event.target).value)" /></mat-form-field>
-      <mat-form-field class="filter-field unit-field" appearance="outline" subscriptSizing="dynamic"><mat-label>Unidad</mat-label><mat-icon matPrefix>business</mat-icon><input matInput [value]="unidadSearch()" (input)="searchUnidad($any($event.target).value)" (focus)="$any($event.target).select()" [matAutocomplete]="unidadAutocomplete" autocomplete="off" /><mat-autocomplete #unidadAutocomplete="matAutocomplete" (optionSelected)="filterByUnidad($event.option.value)"><mat-option [value]="null">Todas las unidades</mat-option>@for (unidad of unidadesFiltradas(); track unidad.id) {<mat-option [value]="unidad.id">{{ unidad.nombre }}</mat-option>}@if (unidadesFiltradas().length === 0) {<mat-option disabled>Sin coincidencias</mat-option>}</mat-autocomplete></mat-form-field>
-      <mat-form-field class="filter-field" appearance="outline" subscriptSizing="dynamic"><mat-label>Estado</mat-label><mat-icon matPrefix>toggle_on</mat-icon><input matInput [value]="estadoSearch()" (input)="searchEstado($any($event.target).value)" (focus)="$any($event.target).select()" [matAutocomplete]="estadoAutocomplete" autocomplete="off" /><mat-autocomplete #estadoAutocomplete="matAutocomplete" (optionSelected)="filterByStatus($event.option.value)">@for (estado of estadosFiltrados(); track estado.label) {<mat-option [value]="estado.value">{{ estado.label }}</mat-option>}@if (estadosFiltrados().length === 0) {<mat-option disabled>Sin coincidencias</mat-option>}</mat-autocomplete></mat-form-field>
-      <div class="toolbar-actions"><button mat-button type="button" (click)="clearFilters()" [disabled]="!query() && unidadMedicaId() === null && activo() === null"><mat-icon>filter_alt_off</mat-icon>Limpiar</button><button mat-icon-button matTooltip="Recargar" (click)="loadPersonas()"><mat-icon>refresh</mat-icon></button></div>
+      <label class="search-field">
+        <span>Nombre, correo, RFC o CURP</span>
+        <input hlmInput [value]="query()" (input)="search($any($event.target).value)" />
+      </label>
+
+      <app-searchable-select
+        class="filter-field unit-field"
+        label="Unidad"
+        placeholder="Todas las unidades"
+        searchPlaceholder="Buscar unidad"
+        [options]="unidadOptions()"
+        [value]="unidadMedicaId()"
+        (valueChange)="onUnidadChange($event)" />
+
+      <app-searchable-select
+        class="filter-field"
+        label="Estado"
+        placeholder="Todos los estados"
+        searchPlaceholder="Buscar estado"
+        [options]="statusOptions"
+        [value]="activo()"
+        (valueChange)="onStatusChange($event)" />
+
+      <div class="toolbar-actions">
+        <button hlmBtn variant="ghost" type="button" (click)="clearFilters()">
+          <ng-icon name="lucideEraser" />
+          Limpiar
+        </button>
+
+        <button hlmBtn variant="outline" size="icon" type="button" aria-label="Recargar" (click)="loadPersonas()">
+          <ng-icon name="lucideRefreshCw" />
+        </button>
+      </div>
     </div>
-    @if (loading()) { <div class="loading"><mat-spinner diameter="32" /></div> } @else if (personas().length === 0) { <div class="empty">No hay personas que coincidan con los filtros.</div> } @else { <div class="table-scroll"><table><thead><tr><th>Persona</th><th>Contacto</th><th>Unidad</th><th>Cuenta</th><th>Estado</th><th class="actions">Acciones</th></tr></thead><tbody>@for (persona of personas(); track persona.id) {<tr><td><strong>{{ persona.nombreCompleto }}</strong><small>{{ persona.cargo || 'Sin cargo' }}</small></td><td>{{ persona.correoPrincipal || '—' }}<small>{{ persona.username || '' }}</small></td><td>{{ persona.nombreUnidadMedica || 'Sin asignar' }}</td><td>@if (persona.userId) {<span class="account yes">{{ persona.userEmail }}</span>} @else {<span class="account">Sin cuenta</span>}</td><td><span class="status" [class.inactive]="!persona.activo">{{ persona.activo ? 'Activa' : 'Baja' }}</span></td><td class="row-actions"><button mat-icon-button matTooltip="Editar" (click)="openForm(persona)"><mat-icon>edit</mat-icon></button>@if (!persona.userId && persona.activo) {<button mat-icon-button matTooltip="Crear cuenta" (click)="provisionarUsuario(persona)"><mat-icon>manage_accounts</mat-icon></button>}@if (persona.userId && isAdminTic()) {<button mat-icon-button matTooltip="Restablecer contraseña" (click)="resetPassword(persona)" [disabled]="saving()"><mat-icon>password</mat-icon></button>}@if (persona.activo) {<button mat-icon-button matTooltip="Dar de baja" (click)="deactivate(persona)"><mat-icon>person_off</mat-icon></button>}</td></tr>}</tbody></table></div> }
+
+    @if (loading()) {
+      <div class="loading"><hlm-spinner /></div>
+    } @else if (personas().length === 0) {
+      <div class="empty">No hay personas que coincidan con los filtros.</div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Contacto</th>
+              <th>Unidad</th>
+              <th>Cuenta</th>
+              <th>Estado</th>
+              <th class="actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (persona of personas(); track persona.id) {
+              <tr>
+                <td>
+                  <strong>{{ persona.nombreCompleto }}</strong>
+                  <small>{{ persona.cargo || 'Sin cargo' }}</small>
+                </td>
+                <td>
+                  {{ persona.correoPrincipal || '—' }}
+                  <small>{{ persona.username || '' }}</small>
+                </td>
+                <td>{{ persona.nombreUnidadMedica || 'Sin asignar' }}</td>
+                <td>
+                  @if (persona.userId) {
+                    <span class="account yes">{{ persona.userEmail }}</span>
+                  } @else {
+                    <span class="account">Sin cuenta</span>
+                  }
+                </td>
+                <td>
+                  <span class="status" [class.inactive]="!persona.activo">{{ persona.activo ? 'Activa' : 'Baja' }}</span>
+                </td>
+                <td class="row-actions">
+                  <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Editar" (click)="openForm(persona)">
+                    <ng-icon name="lucidePencil" />
+                  </button>
+
+                  @if (!persona.userId && persona.activo) {
+                    <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Crear cuenta" (click)="provisionarUsuario(persona)">
+                      <ng-icon name="lucideUsersRound" />
+                    </button>
+                  }
+
+                  @if (persona.userId && isAdminTic()) {
+                    <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Restablecer contraseña" (click)="resetPassword(persona)" [disabled]="saving()">
+                      <ng-icon name="lucideKeyRound" />
+                    </button>
+                  }
+
+                  @if (persona.activo) {
+                    <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Dar de baja" (click)="deactivate(persona)">
+                      <ng-icon name="lucideUserMinus" />
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </section>
 </section>
