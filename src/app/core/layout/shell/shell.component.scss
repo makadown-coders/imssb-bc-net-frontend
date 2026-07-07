@@ -1,23 +1,25 @@
 :host { display: block; min-height: 100vh; }
 .shell-container { height: 100vh; background: var(--imssb-surface); }
-.app-sidebar { width: 270px; border-right: 1px solid var(--imssb-line); background: var(--imssb-white); box-shadow: 5px 0 20px rgba(0, 61, 42, .07); }
-.sidebar-brand { height: 67px; display: flex; align-items: center; padding: .65rem 1rem; background: var(--imssb-green-700); border-bottom: 3px solid var(--imssb-gold-500); }
-.sidebar-brand img { width: auto; max-width: 190px; height: 43px; object-fit: contain; }
+.app-sidebar { width: 276px; border-right: 1px solid var(--imssb-line); border-radius: 0; background: var(--imssb-white); box-shadow: 5px 0 20px rgba(0, 61, 42, .07); --mat-sidenav-container-shape: 0; }
+.sidebar-brand { height: 72px; display: flex; align-items: center; padding: .7rem 1.25rem; background: var(--imssb-green-700); border-bottom: 3px solid var(--imssb-gold-500); }
+.sidebar-brand img { width: auto; max-width: 192px; height: 46px; object-fit: contain; }
 .sidebar-close { display: none; margin-left: auto; color: var(--imssb-white); }
-.sidebar-nav { padding: .75rem; }
-.sidebar-nav > a, .nav-section a { margin: 2px 0; border-radius: 8px; color: var(--imssb-ink); }
-.sidebar-nav a .mat-icon { color: var(--imssb-muted); }
-.sidebar-nav a:hover { background: var(--imssb-green-050); }
-.sidebar-nav a.is-active { color: var(--imssb-green-900); background: var(--imssb-green-100); font-weight: 600; }
-.sidebar-nav a.is-active .mat-icon { color: var(--imssb-green-700); }
-.nav-section { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--imssb-line); }
-.section-title { margin: 0 0 .35rem; padding: 0 .75rem; color: var(--imssb-muted); font-size: .7rem; font-weight: 700; letter-spacing: .09em; line-height: 1.4; text-transform: uppercase; }
+.sidebar-nav { height: calc(100vh - 72px); padding: 1rem .75rem 1.5rem; overflow-y: auto; }
+.nav-link { position: relative; min-height: 46px; display: flex; align-items: center; gap: .8rem; margin: .2rem 0; padding: .65rem .85rem; border-radius: 10px; color: var(--imssb-ink); font-size: .94rem; font-weight: 500; line-height: 1.2; text-decoration: none; transition: color 140ms ease, background-color 140ms ease, transform 140ms ease; }
+.nav-link .mat-icon { flex: 0 0 23px; width: 23px; height: 23px; color: #687a71; font-size: 23px; transition: color 140ms ease; }
+.nav-link:hover { color: var(--imssb-green-900); background: var(--imssb-green-050); }
+.nav-link:focus-visible { outline: 3px solid rgba(203, 161, 53, .45); outline-offset: 1px; }
+.nav-link.is-active { color: var(--imssb-green-900); background: var(--imssb-green-100); box-shadow: inset 4px 0 0 var(--imssb-green-700); font-weight: 700; }
+.nav-link.is-active .mat-icon { color: var(--imssb-green-700); }
+.root-link { margin-bottom: .5rem; }
+.nav-section { margin-top: .7rem; padding-top: .9rem; border-top: 1px solid var(--imssb-line); }
+.section-title { margin: 0 0 .45rem; padding: 0 .85rem; color: #687a71; font-size: .69rem; font-weight: 800; letter-spacing: .1em; line-height: 1.4; text-transform: uppercase; }
 .nav-section.section-active .section-title { color: var(--imssb-green-700); }
 .shell-content { min-width: 0; }
-.app-toolbar { height: 67px; display: flex; color: var(--imssb-white); background: var(--imssb-green-700); border-bottom: 3px solid var(--imssb-gold-500); }
+.app-toolbar { height: 72px; display: flex; color: var(--imssb-white); background: var(--imssb-green-700); border-bottom: 3px solid var(--imssb-gold-500); }
 .menu-toggle, .mobile-logo { display: none; }
 .welcome-text { max-width: min(60vw, 620px); margin-left: auto; overflow: hidden; color: rgba(255,255,255,.94); font-size: .85rem; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.app-main { height: calc(100vh - 67px); overflow: auto; background: linear-gradient(180deg, rgba(0,99,65,.06), rgba(255,255,255,0) 220px), var(--imssb-surface); }
+.app-main { height: calc(100vh - 72px); overflow: auto; background: linear-gradient(180deg, rgba(0,99,65,.06), rgba(255,255,255,0) 220px), var(--imssb-surface); }
 .app-main.login-main { height: 100vh; min-height: 100vh; background: var(--imssb-surface); }
 
 @media (max-width: 900px) {
