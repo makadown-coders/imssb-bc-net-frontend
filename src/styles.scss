@@ -175,3 +175,55 @@ body {
   --sidebar-border: #d7e2dc;
   --sidebar-ring: #cba135;
 }
+
+.unidad-autocomplete {
+  position: relative;
+}
+
+.input-shell--autocomplete input {
+  color: var(--foreground) !important;
+}
+
+.unidad-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 280px;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--imssb-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(0, 35, 24, 0.12);
+}
+
+.unidad-option {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  color: var(--foreground);
+}
+
+.unidad-option:hover,
+.unidad-option.is-highlighted {
+  background: rgba(0, 105, 62, 0.08);
+}
+
+.unidad-option__title {
+  font-weight: 700;
+  color: var(--imssb-green-900);
+}
+
+.unidad-option__meta {
+  color: var(--imssb-muted);
+  font-size: 0.82rem;
+}

@@ -41,9 +41,9 @@ export type NivelCaptura = 'PRIMER_NIVEL' | 'SEGUNDO_NIVEL';
 
 export interface DatosSolicitud {
   unidad: UnidadSolicitud;
-  tipoInsumo: string;
+  tipoInsumo: string[];
   tipoPedido: TipoPedido;
-  responsableCaptura: string;
+  responsableCaptura?: string;
   fechaInicio: string;
   fechaFin: string;
 }

@@ -1,800 +1,1573 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowRight,
-  lucideBoxes,
-  lucideClipboardList,
-  lucideFlaskConical,
-  lucidePackageSearch,
-  lucidePill,
-  lucidePlus,
-  lucideSearch,
-  lucideSend,
-  lucideTrash2,
-  lucideWarehouse,
-  lucideX,
-} from '@ng-icons/lucide';
-import { toast } from '@spartan-ng/brain/sonner';
-import { HlmButton } from '@spartan-ng/helm/button';
-import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmInput } from '@spartan-ng/helm/input';
-import { HlmLabel } from '@spartan-ng/helm/label';
-import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, map, of, switchMap } from 'rxjs';
-import { ArticuloCatalogo, ArticuloSolicitud, DatosSolicitud, NivelCaptura, UnidadSolicitud } from '../../domain/solicitudes/models/solicitud.model';
-import { SolicitudesApiService } from '../../infrastructure/solicitudes/api/solicitudes-api.service';
-import { CpmEditorRowDto, CpmExpectedRowDto, ExistenciaUnidadRowDto, TemporalExistenciaRowDto } from '../../infrastructure/solicitudes/api/solicitudes-api.contracts';
-import { SolicitudDraftService } from '../../infrastructure/solicitudes/storage/solicitud-draft.service';
-import { SearchableSelectComponent, SearchableSelectOption, SearchableSelectValue } from '../../shared/components/searchable-select/searchable-select.component';
+// src/app/features/solicitudes/solicitudes.component.ts
+import { ArticuloSolicitud } from '../../models/articulo-solicitud';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, HostListener,
+  ViewChild, inject, ChangeDetectorRef, AfterViewInit,
+  ChangeDetectionStrategy, OnDestroy, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { debounceTime, firstValueFrom, map, Subject, takeUntil } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import { NombrarArchivoModalComponent } from '../../shared/nombrar-archivo-modal/nombrar-archivo-modal.component';
+import { ConfirmacionModalComponent } from '../../shared/confirmacion-modal/confirmacion-modal.component';
+import { DatosClues } from '../../models/datos-clues';
+import { Router, RouterModule } from '@angular/router';
+import { Inventario, InventarioDisponibles } from '../../models/Inventario';
+import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { CPMS } from '../../models/CPMS';
+import { Nivel } from '../../models/feature-flags.model';
+import { CpmRowLite } from '../../models/CpmExpectedRow';
+import { EnrichedProps } from '../../models/EnrichedProps';
+import { NgFastToastService } from 'ng-fast-toast';
+import { KitModalComponent } from './kit-modal/kit-modal.component';
+import { CpmUnionRow } from '../../models/CpmUnionRow';
+import { CpmModalComponent } from './cpm-modal/cpm-modal.component';
+import { CpmEditModalComponent } from './cpm-edit-modal/cpm-edit-modal.component';
+import { aplicarFactorConversion } from '../../models';
+import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
+import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
+import { environment } from '../../../environments/environment';
+import { TablaArticulosComponent } from './tabla-articulos/tabla-articulos.component';
+import { ArticulosService } from '../../infrastructure/articulos.service';
+import { CpmEditorService } from '../../infrastructure/cpm-editor.service';
+import { CpmService } from '../../infrastructure/cpm.service';
+import { ExcelService } from '../../infrastructure/excel.service';
+import { ExistenciasTempService } from '../../infrastructure/existencias-temp.service';
+import { FeatureFlagsService } from '../../infrastructure/feature-flags.service';
+import { HomologosSolicitudService, MiniBalanceHomologoCand, SugerenciaHomologoItem } from '../../infrastructure/homologos-solicitud.service';
+import { InventarioService } from '../../infrastructure/inventario/inventario.service';
+import { StorageSolicitudService } from '../../infrastructure/storage-solicitud.service';
+import { SurveyService } from '../../infrastructure/survey.service';
+import { TrazabilidadService } from '../../infrastructure/trazabilidad.service';
+import { SolicitudesBitacoraService } from '../../infrastructure/solicitudes/solicitudes-bitacora.service';
 
-type TipoPedido = 'Ordinario' | 'Extraordinario';
-
-interface InventarioEstatalResumen {
-  total: number;
-  azm: number;
-  aze: number;
-  azt: number;
-}
-
-interface HomologoSugeridoResumen {
-  clave: string;
-  stock: number;
-  almacen: string;
-}
-
-interface KitEntry {
-  clave: string;
-  descripcion: string;
-  presentacion: string;
-  cpm: number;
-  existenciaUnidad: number;
-  existenciaEstatal: number;
-  existenciasAzm: number;
-  existenciasAze: number;
-  existenciasAzt: number;
-  mejorAlmacen: string;
-  recomendacionAbasto: string;
-  mejorHomologoClave?: string;
-  mejorHomologoStock: number;
-  mejorHomologoAlmacen?: string;
-  kits: string[];
-}
-
-interface CpmEntry {
-  clave: string;
-  descripcion: string;
-  presentacion: string;
-  cpm: number;
-  existenciaUnidad: number;
-  existenciaEstatal: number;
-  existenciasAzm: number;
-  existenciasAze: number;
-  existenciasAzt: number;
-  mejorAlmacen: string;
-  recomendacionAbasto: string;
-  mejorHomologoClave?: string;
-  mejorHomologoStock: number;
-  mejorHomologoAlmacen?: string;
-}
 
 @Component({
   selector: 'app-solicitudes',
-  imports: [ReactiveFormsModule, NgIcon, HlmButton, HlmCardImports, HlmInput, HlmLabel, HlmSpinner, SearchableSelectComponent],
+  standalone: true,
+  imports: [CommonModule, FormsModule,
+    NombrarArchivoModalComponent,
+    ConfirmacionModalComponent,
+    TablaArticulosComponent,
+    RouterModule,
+    KitModalComponent,
+    CpmModalComponent,
+    CpmEditModalComponent,
+    HomologoSugerenciaModalComponent,
+    HomologoResumenImportacionComponent
+  ],
   templateUrl: './solicitudes.component.html',
-  styleUrl: './solicitudes.component.scss',
-  providers: [provideIcons({
-    lucideArrowRight,
-    lucideBoxes,
-    lucideClipboardList,
-    lucideFlaskConical,
-    lucidePackageSearch,
-    lucidePill,
-    lucidePlus,
-    lucideSearch,
-    lucideSend,
-    lucideTrash2,
-    lucideWarehouse,
-    lucideX,
-  })],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SolicitudesComponent implements OnInit {
-  private readonly formBuilder = inject(NonNullableFormBuilder);
-  private readonly api = inject(SolicitudesApiService);
-  private readonly drafts = inject(SolicitudDraftService);
-  private readonly destroyRef = inject(DestroyRef);
+export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
+  datosClues = {} as DatosClues;
+  mostrarModal = false;
+  modalVisible = false;
+  modalTitulo = '';
+  modalMensaje = '';
+  modalConfirmarTexto = '';
+  modalCancelarTexto = '';
+  modalCallback?: () => void;
+  modalSoloInfo = false;
+  articulosSolicitados: ArticuloSolicitud[] = [];
+  private invIndex = new Map<string, InventarioDisponibles>();
+  private cpmIndex = new Map<string, number>();
 
-  readonly tiposInsumo = ['Medicamento', 'Material de Curación', 'Mezclas', 'Otros'];
-  readonly modos: { key: NivelCaptura; title: string; description: string }[] = [
-    { key: 'PRIMER_NIVEL', title: 'Primer nivel', description: 'Captura enfocada en unidades de primer contacto y centros de salud.' },
-    { key: 'SEGUNDO_NIVEL', title: 'Segundo nivel', description: 'Captura con apoyo de CPMs, KITs y revisión de claves hospitalarias.' },
-  ];
+  claveInput = '';
+  descripcionInput = '';
+  unidadInput = '';
+  cantidadInput!: number;
 
-  readonly modo = signal<NivelCaptura>('SEGUNDO_NIVEL');
-  readonly unidades = signal<UnidadSolicitud[]>([]);
-  readonly articulos = signal<ArticuloSolicitud[]>([]);
-  readonly resultados = signal<ArticuloCatalogo[]>([]);
-  readonly selectedArticle = signal<ArticuloCatalogo | null>(null);
-  readonly loadingUnits = signal(false);
-  readonly loadingContext = signal(false);
-  readonly searching = signal(false);
-  readonly saving = signal(false);
-  readonly cpmModalVisible = signal(false);
-  readonly kitModalVisible = signal(false);
-  readonly mesesCoberturaCpm = signal(1);
-  readonly mesesCoberturaKit = signal(1);
-  readonly cpmFilter = signal('');
-  readonly kitFilter = signal('');
-  readonly kitSelected = signal<string>('');
+  modalPedirNombreArchivo = false;
+  nombreArchivo = '';
+  modoStandalone = false;
 
-  readonly cpmRows = signal<CpmEntry[]>([]);
-  readonly kitRows = signal<KitEntry[]>([]);
-  readonly kitCodes = signal<string[]>([]);
-  readonly selectedCpmClaves = signal<Set<string>>(new Set());
-  readonly selectedKitClaves = signal<Set<string>>(new Set());
+  autocompleteResults: any[] = [];
+  moreResults = false;
+  totalResults = 0;
 
-  private readonly cpmMap = signal(new Map<string, number>());
-  private readonly existenciasMap = signal(new Map<string, ExistenciaUnidadRowDto>());
-  private readonly articleMap = signal(new Map<string, ArticuloCatalogo>());
-  private readonly kitMap = signal(new Map<string, string[]>());
-  private readonly homologosMap = signal(new Map<string, number>());
-  private readonly homologosStockMap = signal(new Map<string, number>());
-  private readonly bestHomologoMap = signal(new Map<string, HomologoSugeridoResumen>());
-  private readonly inventarioEstatalMap = signal(new Map<string, InventarioEstatalResumen>());
+  selectedIndex = -1;
 
-  readonly totalPiezas = computed(() => this.articulos().reduce((sum, item) => sum + item.cantidad, 0));
-  readonly selectedUnit = computed(() => this.datosForm.controls.unidad.value);
-  readonly selectedUnitValue = computed(() => {
-    const unit = this.selectedUnit();
-    return unit ? String(unit.id) : null;
-  });
-  readonly unitOptions = computed<SearchableSelectOption[]>(() => this.unidades().map((unit) => ({
-    label: `${unit.nombre} · ${unit.cluesimb}`,
-    value: String(unit.id),
-    keywords: `${unit.cluessa} ${unit.municipio} ${unit.localidad} ${unit.tipoUnidad ?? ''}`,
-  })));
+  private searchSubject = new Subject<string>();
+  articulosService = inject(ArticulosService);
+  excelService = inject(ExcelService);
+  toast = inject(NgFastToastService);
+  trazabilidadService = inject(TrazabilidadService);
+  bitacoraService = inject(SolicitudesBitacoraService);
+  cpmEditorService = inject(CpmEditorService);
 
-  readonly filteredCpmRows = computed(() => {
-    const term = normalize(this.cpmFilter());
-    return this.cpmRows().filter((row) => normalize(`${row.clave} ${row.descripcion} ${row.presentacion}`).includes(term));
-  });
+  @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
+  @ViewChild('inputClave') inputClaveRef!: ElementRef<HTMLInputElement>;
+  @ViewChild(TablaArticulosComponent) tablaArticulosComponent?: TablaArticulosComponent;
 
-  readonly filteredKitRows = computed(() => {
-    const term = normalize(this.kitFilter());
-    return this.kitRows().filter((row) => {
-      const matchesText = normalize(`${row.clave} ${row.descripcion} ${row.presentacion} ${(row.kits || []).join(' ')}`).includes(term);
-      const matchesKit = !this.kitSelected() || row.kits.includes(this.kitSelected());
-      return matchesText && matchesKit;
+  modoEdicionIndex: number | null = null;
+  cantidadTemporal: number = 0;
+
+  generarPrecarga: boolean = true;
+
+  //mensajeImportacion: string | null = null;
+  // dentro de la clase:
+  private survey = inject(SurveyService);
+
+  private cdRef = inject(ChangeDetectorRef);
+  private router = inject(Router);
+  public storageSolicitudService = inject(StorageSolicitudService);
+  private cpmService = inject(CpmService);
+
+  // behaviorSubject para desuscribirme de todos los observables
+  private onDestroy$ = new Subject<void>();
+  private featureFlagsService = inject(FeatureFlagsService);
+  // cachecito opcional para no pedir siempre
+  private surveyFlagCache = new Map<string, boolean>();
+
+  private existTemp = inject(ExistenciasTempService);
+
+  existUnidadIndex = new Map<string, number>();
+  get hasUnidadExistencias(): boolean { return this.existUnidadIndex.size > 0; }
+
+  // dentro de la clase SolicitudesComponent
+  // ============= Inyección de servicios =============
+  private homologosSolicitudService = inject(HomologosSolicitudService);
+
+  // ============= FLUJO 1: Properties para Agregar Manual =============
+  homologoModalVisible = false;
+  homologoModalData: { sugerencias: MiniBalanceHomologoCand[]; clave: string; cantidad: number; inventarioDisponible: InventarioDisponibles[] } | null = null;
+  private listaNegraHomologos = new Set<string>();
+
+  // ============= FLUJO 2: Properties para Importación =============
+  importResumenHomologosVisible = false;
+  articulosConHomologos: SugerenciaHomologoItem[] = [];
+  homologoResumenTotalImportados = 0;
+  homologoResumenOrigen: 'importacion' | 'modales' = 'importacion';
+
+  // ============= FLUJO 3: Properties para Modales CPM/KIT =============
+  mostrarOportunidadesEnTabla = false;
+  oportunidadesDisponibles: SugerenciaHomologoItem[] = [];
+
+  public tituloUnidad$ = this.storageSolicitudService.nombreUnidad$.pipe(
+    map((nombre) => {
+      const raw = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      let municipio = '';
+      try {
+        municipio = (JSON.parse(raw || '{}')?.hospital?.municipio) ?? '';
+      } catch { /* noop */ }
+
+      const esPrimerNivel =
+        this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+
+      return esPrimerNivel && municipio ? `${nombre} (${municipio})` : nombre;
+    })
+  );
+
+  constructor() {
+  }
+  ngOnDestroy(): void {
+    // desuscribirme usando un behaviorSubject
+    this.onDestroy$.next();
+    this.onDestroy$.complete();
+  }
+
+  public inventarioService = inject(InventarioService);
+  inventario: Inventario[] = [];
+  inventarioDisponible: InventarioDisponibles[] = [];
+  cpmsDeCluesActual: CPMS[] = [];
+  canEditCpms = false;
+
+  get capturaStats() {
+    const stats = {
+      total: this.articulosSolicitados.length,
+      cpmCero: 0,
+      menorCpm: 0,
+      igualCpm: 0,
+      mayorCpm: 0
+    };
+
+    for (const art of this.articulosSolicitados) {
+      const clave = this.normClave(art.clave);
+      const cpmCapturado = Number(art.cpm ?? 0) || 0;
+      const cpm = cpmCapturado > 0 ? cpmCapturado : (this.cpmIndex.get(clave) ?? 0);
+      const cantidad = Number(art.cantidad ?? 0) || 0;
+
+      if (cpm <= 0) {
+        stats.cpmCero++;
+        continue;
+      }
+
+      if (cantidad < cpm) stats.menorCpm++;
+      if (cantidad === cpm) stats.igualCpm++;
+      if (cantidad > cpm) stats.mayorCpm++;
+    }
+
+    return stats;
+  }
+
+  async ngOnInit() {
+    if (this.router.url === '/solicitudv1') {
+      this.modoStandalone = true;
+    } else {
+      this.modoStandalone = false;
+      this.cpmService.cpmsForImport(this.cluesimbActual)
+        .pipe(takeUntil(this.onDestroy$))
+        .subscribe((rows: CpmUnionRow[]) => {
+          const clues = this.cluesimbActual;
+          this.cpmsDeCluesActual = this.mapCpmRowsToCPMS(rows as any, clues);
+          this.cpmIndex.clear();
+          for (const r of this.cpmsDeCluesActual) {
+            this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
+          }
+          this.cdRef.detectChanges();
+        });
+    }
+
+    const guardados = this.storageSolicitudService.getArticulosSolicitadosFromLocalStorage();
+    if (guardados) {
+      const articulosGuardados: ArticuloSolicitud[] = JSON.parse(guardados);
+      // Normalizar claves
+      this.articulosSolicitados = articulosGuardados.map(art => {
+        const claveNormalizada = this.inventarioService.normalizarClave(art.clave);
+        return {
+          ...art,
+          clave: claveNormalizada
+        };
+      });
+      this.rebuildExistingClaves();
+    }
+
+    // â¬‡ï¸ (Robustez) si el usuario llega directo a esta ruta,
+    // levanta CPM de la unidad guardada en localStorage.
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+    if (cluesStr) {
+      this.datosClues = JSON.parse(cluesStr) as DatosClues;
+      const cluesimb = this.datosClues?.hospital?.cluesimb || '';
+      if (cluesimb) {
+        // no hace daño si Layout ya lo cargó: usa cachá del CpmService
+        this.cpmService.ensureForCluesimb(cluesimb).subscribe();
+        this.loadExistenciasUnidad(cluesimb);
+      }
+    }
+    await this.loadEditCpmsFlag();
+
+    this.searchSubject.pipe(debounceTime(1000), takeUntil(this.onDestroy$))
+      .subscribe(texto => {
+        if (texto.length > 2) {
+          this.buscarEnDB(texto);
+        } else {
+          this.autocompleteResults = [];
+          this.selectedIndex = -1;
+          this.moreResults = false;
+          this.totalResults = 0;
+        }
+      });
+
+    // TODO: Comentar esto si no se desea mostrar info de inventario
+    this.inventarioService.inventario$
+      .pipe(takeUntil(this.onDestroy$))
+      .subscribe({
+        next: (data) => {
+          this.inventario = [...data];
+          this.calcularInventarioDisponible();
+          this.cdRef.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error al obtener el inventario:', error);
+        }
+      });
+  }
+
+  // â¬‡ï¸ Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
+  // Asumo CPMS = { clave: string; cpm: number }.
+  // Si tu interfaz CPMS tiene más campos, ajústalos aquÃ­.
+  private mapCpmRowsToCPMS(rows: CpmRowLite[], cluesimbFallback?: string): CPMS[] {
+    // Consolidamos por clave (si una clave aparece varias veces por distintos kits, tomamos el mayor CPM)
+    const byClave = new Map<string, CPMS>();
+
+    for (const r of rows) {
+      const clave = (r.clave_cnis || '').toUpperCase();
+      if (!clave) continue;
+
+      const cpmVal = Number(r.cpm ?? 0);
+      if (cpmVal <= 0) continue; // solo nos interesan CPMS > 0
+
+      const cluesimb = (r.cluesimb || cluesimbFallback || '').toUpperCase();
+      const prev = byClave.get(clave);
+
+      if (!prev || cpmVal > prev.cantidad) {
+        byClave.set(clave, {
+          clave,
+          cluesimb,
+          cantidad: cpmVal,   // ðŸ‘ˆ aquÃ­ â€˜cantidadâ€™ = CPM
+        });
+      }
+    }
+
+    return Array.from(byClave.values());
+  }
+
+  calcularInventarioDisponible() {
+    const disponiblePorClave = new Map<string, InventarioDisponibles>();
+    this.invIndex.clear();
+
+    for (const item of this.inventario) {
+      const clave = item.clave;
+      let existencia = disponiblePorClave.get(clave);
+
+      if (!existencia) {
+        existencia = {
+          clave,
+          existenciasAZM: 0,
+          existenciasAZE: 0,
+          existenciasAZT: 0
+        };
+        disponiblePorClave.set(clave, existencia);
+      }
+
+      const disponiblesNetos = item.disponible - item.comprometidos;
+      const almacen = (item.almacen || '').toLowerCase();
+
+      if (almacen.includes('almacen estatal zona mexicali') || almacen.includes('almacen zona mexicali') || almacen.includes('almacen imss bienestar mexicali')) {
+        existencia.existenciasAZM += disponiblesNetos;
+      } else if (almacen.includes('almacen zona ensenada') || almacen.includes('almacen imss bienestar ensenada')) {
+        existencia.existenciasAZE += disponiblesNetos;
+      } else if (almacen.includes('almacen zona tijuana') || almacen.includes('almacen imss bienestar tijuana')) {
+        existencia.existenciasAZT += disponiblesNetos;
+      }
+    }
+
+    this.inventarioDisponible = Array.from(disponiblePorClave.values());
+    for (const item of this.inventarioDisponible) {
+      this.invIndex.set(item.clave, item);
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.cdRef.detectChanges();
+  }
+
+  onClaveInput() {
+    this.searchSubject.next(this.claveInput);
+  }
+
+  buscarEnDB(texto: string) {
+    this.buscarArticulosBackend(texto);
+  }
+
+  estaCapturandoPrimerNivel() {
+    return this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+  }
+
+  buscarArticulosBackend(texto: string) {
+    // ðŸ”Œ Intenta con backend koyeb
+    this.articulosService.buscarArticulos(texto).subscribe({
+      next: (data) => {
+        // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
+        const base = (data.resultados || []).sort((a, b) => a.clave.localeCompare(b.clave));
+        this.autocompleteResults = this.enrichWithExistencias(base);
+
+        if (this.hasUnidadExistencias) {
+          this.autocompleteResults = this.autocompleteResults.map(it => ({
+            ...it,
+            _existUnidad: this.existUnidadIndex.get(it.clave) ?? 0
+          }));
+        }
+        this.totalResults = data.total || 0;
+        this.moreResults = this.totalResults > 24;
+        this.selectedIndex = 0;
+        this.cdRef.detectChanges();
+        setTimeout(() => this.focusSelectedItem(), 0);
+      },
+      error: (error) => {
+        console.error('Error en búsqueda de artículos:', error);
+        this.autocompleteResults = [];
+        this.selectedIndex = -1;
+        this.moreResults = false;
+        this.totalResults = 0;
+        this.cdRef.detectChanges();
+      }
     });
-  });
+  }
 
-  readonly datosForm = this.formBuilder.group({
-    unidad: new FormControl<UnidadSolicitud | null>(null, Validators.required),
-    tipoInsumo: ['', Validators.required],
-    tipoPedido: this.formBuilder.control<TipoPedido>('Ordinario', Validators.required),
-    responsableCaptura: ['', [Validators.required, Validators.maxLength(150)]],
-    fechaInicio: new FormControl<Date | null>(null, Validators.required),
-    fechaFin: new FormControl<Date | null>(null, Validators.required),
-  }, { validators: validDateRange });
+  // TODO: Eliminar hasta que sea oficial. Pero si es seguro que esto se eliminaria o modificaria en caso de requerirlo
+  /* buscarArticulosPrimerNivel(texto: string) {
+     this.articulosService.buscarArticulosPrimerNivel(texto).subscribe({
+       next: (data) => {
+         const base = data.resultados || [];
+         this.autocompleteResults = this.enrichWithExistencias(base);
+         this.totalResults = data.total || 0;
+         this.moreResults = this.totalResults > 24;
+         this.selectedIndex = 0;
+         this.cdRef.detectChanges();
+         setTimeout(() => this.focusSelectedItem(), 0);
+       },
+       error: (fallbackError) => {
+         console.error('Error en búsqueda local:', fallbackError);
+         this.autocompleteResults = [];
+         this.totalResults = 0;
+       }
+     });
+   }*/
 
-  readonly articuloSearch = new FormControl('', { nonNullable: true });
-  readonly articuloForm = this.formBuilder.group({
-    cantidad: [1, [Validators.required, Validators.min(1), Validators.max(99999)]],
-    observaciones: ['', Validators.maxLength(300)],
-  });
 
-  ngOnInit(): void {
-    this.loadUnits();
+  async selectArticulo(item: any) {
+    this.claveInput = item.clave;
+    this.descripcionInput = item.descripcion ?? '';
+    this.unidadInput = item.unidadMedida ?? (item.presentacion ?? '');
+    this.autocompleteResults = [];
+    this.selectedIndex = -1;
+  }
 
-    this.articuloSearch.valueChanges.pipe(
-      takeUntilDestroyed(this.destroyRef),
-      map((value) => value.trim()),
-      debounceTime(250),
-      distinctUntilChanged(),
-      switchMap((query) => {
-        if (query.length < 3 || !this.selectedUnit()) {
-          this.resultados.set([]);
-          return of(null);
+  onInputKeyDown(event: KeyboardEvent) {
+    if (!this.autocompleteResults.length) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedIndex = (this.selectedIndex + 1) % this.autocompleteResults.length;
+        this.focusSelectedItem();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedIndex =
+          (this.selectedIndex - 1 + this.autocompleteResults.length) % this.autocompleteResults.length;
+        this.focusSelectedItem();
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (this.autocompleteResults[this.selectedIndex]) {
+          this.selectArticulo(this.autocompleteResults[this.selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        this.autocompleteResults = [];
+        this.selectedIndex = -1;
+        break;
+    }
+  }
+
+  focusSelectedItem() {
+    const itemsArray = this.resultItems.toArray();
+    if (itemsArray[this.selectedIndex]) {
+      itemsArray[this.selectedIndex].nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }
+
+  async agregarArticulo() {
+    const clave = this.claveInput.trim().toUpperCase();
+    try {
+      await this.cpmService.ensureAllowedOrThrow(clave);
+      // proceder con la captura
+    } catch {
+      this.toast.warn({
+        title: 'Clave fuera de KIT',
+        content: 'La clave no pertenece al KIT de la unidad (flag activa).',
+        duration: 5
+      });
+      return;
+    }
+    const cpm = this.cpmIndex.get(this.normClave(clave)) ?? 0;
+
+    if (!clave || !this.descripcionInput || !this.unidadInput || this.cantidadInput <= 0) {
+      return; // Validación básica
+    }
+
+    // Evitar duplicados por clave (case-insensitive)
+    const existe = this.articulosSolicitados.some(a => a.clave.toUpperCase() === clave);
+    if (existe) {
+      this.abrirModalInfo(
+        'Clave repetida',
+        `Ya capturaste un artículo con la clave "${clave}".`
+      );
+      return;
+    }
+
+    // Validar que si estoy capturando en modo primer nivel solo admita articulos de primer nivel
+    // Parte por eliminar hasta que sea oficial
+    /*if (this.storageSolicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL) {
+      const esPrimerNivel = this.articulosService.esPrimerNivel(clave);
+      if (!esPrimerNivel) {
+        this.abrirModalInfo(
+          'Clave no permitida',
+          `El articulos con la clave "${clave}" no se captura en modo primer nivel.`);
+        return;
+      }
+    }*/
+
+
+    this.articulosSolicitados.push({
+      clave,
+      descripcion: this.descripcionInput.trim(),
+      unidadMedida: this.unidadInput.trim(),
+      cantidad: this.cantidadInput,
+      cpm,
+      presentacion: '',
+      observaciones: ''
+    });
+
+    // âœ¨ FLUJO 1: NUEVO - Detectar homologos para este artículo
+    this.detectarYMostrarHomologoParaArticulo(clave, this.cantidadInput);
+
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
+
+    // Limpiar inputs
+    this.claveInput = '';
+    this.descripcionInput = '';
+    this.unidadInput = '';
+    this.cantidadInput = 0;
+    this.selectedIndex = -1;
+
+    this.cdRef.detectChanges();
+
+    setTimeout(() => {
+      this.inputClaveRef?.nativeElement.focus();
+    }, 0);
+  }
+
+  // ============================================
+  // FLUJO 1: Mátodos para Agregar Manual
+  // ============================================
+
+  /**
+   * Detecta homologos y muestra el modal si hay sugerencias
+   */
+  private async detectarYMostrarHomologoParaArticulo(clave: string, cantidad: number) {
+    // No sugerir si está en lista negra
+    if (this.esClaveEnListaNegra(clave)) return;
+
+    try {
+      const sugerencias = await this.homologosSolicitudService.obtenerMejoresHomologos(
+        clave,
+        cantidad,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length) {
+        const claveOriginalNorm = this.normClave(clave);
+        const existentes = new Set(this.articulosSolicitados.map(a => this.normClave(a.clave)));
+        const sugerenciasFiltradas = sugerencias.filter(s => {
+          const candNorm = this.normClave(s.sustituto);
+          if (!candNorm) return false;
+          if (candNorm === claveOriginalNorm) return true;
+          return !existentes.has(candNorm);
+        });
+
+        const omitidas = sugerencias.length - sugerenciasFiltradas.length;
+        if (omitidas > 0) {
+          this.toast.warn({
+            title: 'Alternativas omitidas',
+            content: `${omitidas} alternativa(s) ya estaban en la lista y no se mostraron.`,
+            duration: 4
+          });
         }
 
-        this.searching.set(true);
-        return this.api.buscarArticulos(query).pipe(
-          switchMap((response) => {
-            const claves = response.resultados.map((item) => item.clave);
-            return this.api.getHomologosBatch(claves).pipe(
-              map((homologos) => ({ response, homologos })),
-              catchError(() => of({ response, homologos: { rows: [] } })),
-            );
-          }),
-          finalize(() => this.searching.set(false)),
-          catchError(() => {
-            toast.error('No fue posible buscar claves para esta unidad.');
-            return of(null);
-          }),
-        );
-      }),
-    ).subscribe((payload) => {
-      if (!payload) {
+        if (!sugerenciasFiltradas.length) {
+          return;
+        }
+
+        this.homologoModalData = {
+          sugerencias: sugerenciasFiltradas,
+          clave,
+          cantidad,
+          inventarioDisponible: this.inventarioDisponible
+        };
+        this.homologoModalVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos:', error);
+      // Fallar silenciosamente - la captura continúa normalmente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo por homólogo sugerido
+   */
+  async onReemplazarHomologo(candidato: MiniBalanceHomologoCand) {
+    const originalClave = this.homologoModalData?.clave;
+    if (!originalClave) return;
+
+    const originalNorm = this.normClave(originalClave);
+    const sustitutoNorm = this.normClave(candidato.sustituto);
+    const duplicada = this.articulosSolicitados.some(a => {
+      const actualNorm = this.normClave(a.clave);
+      return actualNorm === sustitutoNorm && actualNorm !== originalNorm;
+    });
+    if (duplicada) {
+      this.toast.warn({
+        title: 'Clave sugerida ya capturada',
+        content: `La clave ${candidato.sustituto} ya existe en la lista. Elige otra alternativa o conserva la original.`,
+        duration: 5
+      });
+      return;
+    }
+
+    // Encontrar y reemplazar el artículo más reciente agregado
+    const index = this.articulosSolicitados.findIndex(a => a.clave === originalClave);
+    if (index >= 0) {
+      const originalCantidad = this.articulosSolicitados[index].cantidad;
+      const nuevaCantidad = Math.round(originalCantidad * Number(candidato.factor));
+
+      // Reemplazar
+      this.articulosSolicitados[index].clave = candidato.sustituto;
+      this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+      // Buscar descripción del nuevo artículo
+      try {
+        const resp = await firstValueFrom(this.articulosService
+          .buscarArticulos(candidato.sustituto));
+        console.log('resp de modal de homologos', resp);
+        if (resp?.resultados && resp.resultados.length > 0) {
+          const art = resp.resultados[0];
+          this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+          this.articulosSolicitados[index].unidadMedida = art.unidadMedida ??
+            (art.presentacion ?? '');
+          this.articulosSolicitados[index].observaciones =
+            `Reemplaza ${originalClave} .`;
+        }
+      } catch {
+        // Silencio si falla
+      }
+
+      this.rebuildExistingClaves();
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
+
+      this.toast.success({
+        title: 'Artículo reemplazado',
+        content: `${originalClave} x ${candidato.sustituto} (${nuevaCantidad} un.)`,
+        duration: 4
+      });
+    }
+
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Mantiene el artículo original
+   */
+  onMantenerOriginal() {
+    this.homologoModalVisible = false;
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Agrega una clave a la lista negra (no sugerir más)
+   */
+  agregarAListaNegra(clave: string) {
+    this.listaNegraHomologos.add(clave.toUpperCase());
+    this.toast.warn({
+      title: 'Anotado',
+      content: `No se sugerirán alternativas para ${clave}`,
+      duration: 3
+    });
+  }
+
+  /**
+   * Verifica si una clave está en lista negra
+   */
+  private esClaveEnListaNegra(clave: string): boolean {
+    return this.listaNegraHomologos.has(clave.toUpperCase());
+  }
+
+  // ============================================
+  // FLUJO 2: Métodos para Importación
+  // ============================================
+
+  /**
+   * Detecta homologos para articulos importados y muestra resumen
+   */
+  private async detectarYMostrarHomologosImport() {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        this.articulosSolicitados,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Espera a que se cierre el primer modal
+        this.homologoResumenOrigen = 'importacion';
+        this.homologoResumenTotalImportados = this.articulosSolicitados.length;
+        this.articulosConHomologos = sugerencias;
+        this.importResumenHomologosVisible = true;
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos en importación:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo múltiple desde el resumen de importación
+   */
+  async onReemplazarMultiplesDesdeResumen(
+    resultados: Array<{ originalClave: string; articulo: ArticuloSolicitud }>
+  ) {
+    const norm = (c: string) => this.inventarioService.normalizarClave(c);
+    const clavesActuales = new Set(this.articulosSolicitados.map(a => norm(a.clave)));
+    const aplicables: Array<{ originalClave: string; articulo: ArticuloSolicitud }> = [];
+    const conflictos: string[] = [];
+
+    for (const resultado of resultados) {
+      const { originalClave, articulo: nuevoArt } = resultado;
+      const originalNorm = norm(originalClave);
+      const nuevaNorm = norm(nuevoArt.clave);
+      const duplicadaEnLista = nuevaNorm !== originalNorm && clavesActuales.has(nuevaNorm);
+      const duplicadaEnSeleccion = aplicables.some(a => norm(a.articulo.clave) === nuevaNorm);
+
+      if (duplicadaEnLista || duplicadaEnSeleccion) {
+        conflictos.push(nuevoArt.clave);
+        continue;
+      }
+
+      aplicables.push(resultado);
+      clavesActuales.delete(originalNorm);
+      clavesActuales.add(nuevaNorm);
+    }
+
+    for (const resultado of aplicables) {
+      const { originalClave, articulo: nuevoArt } = resultado;
+
+      const index = this.articulosSolicitados.findIndex(a => {
+        const aNorm = this.inventarioService.normalizarClave(a.clave);
+        const origNorm = this.inventarioService.normalizarClave(originalClave);
+        return aNorm === origNorm;
+      });
+
+      if (index >= 0) {
+        this.articulosSolicitados[index].clave = nuevoArt.clave;
+        this.articulosSolicitados[index].cantidad = nuevoArt.cantidad;
+        this.articulosSolicitados[index].descripcion = nuevoArt.descripcion || this.articulosSolicitados[index].descripcion;
+        this.articulosSolicitados[index].unidadMedida = nuevoArt.unidadMedida || this.articulosSolicitados[index].unidadMedida;
+        this.articulosSolicitados[index].presentacion = nuevoArt.presentacion || this.articulosSolicitados[index].presentacion;
+        this.articulosSolicitados[index].observaciones =
+          nuevoArt.observaciones || `Reemplaza ${originalClave} .`;
+      }
+    }
+
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    const origen = this.homologoResumenOrigen;
+    this.importResumenHomologosVisible = false;
+    if (aplicables.length === 0) {
+      this.toast.warn({
+        title: 'Sin homologaciones seleccionadas',
+        content: conflictos.length > 0
+          ? `No se aplicaron cambios. ${conflictos.length} sugerencia(s) omitida(s) por clave duplicada en la lista.`
+          : 'No se aplicaron cambios; se conservaron los articulos originales.',
+        duration: 5
+      });
+    } else {
+      this.toast.success({
+        title: origen === 'modales' ? 'Selección completada' : 'Importación completada',
+        content: conflictos.length > 0
+          ? `Se procesaron ${aplicables.length} sugerencia(s). ${conflictos.length} omitida(s) por duplicado.`
+          : `Se procesaron ${aplicables.length} articulos con sugerencias`,
+        duration: 4
+      });
+    }
+    this.cdRef.detectChanges();
+  }
+
+  abrirModal() {
+    this.mostrarModal = true;
+  }
+
+  confirmarLimpieza() {
+    this.articulosSolicitados = [];
+    this.storageSolicitudService.limpiarArticulosSolicitadosInLocalStorage();
+    this.existingClavesList = [];
+    this.oportunidadesDisponibles = [];
+    this.mostrarOportunidadesEnTabla = false;
+    this.articulosConHomologos = [];
+    this.importResumenHomologosVisible = false;
+    this.cerrarModal();
+  }
+
+  abrirModalInfo(titulo: string, mensaje: string, confirmarTexto = 'Aceptar') {
+    this.modalTitulo = titulo;
+    this.modalMensaje = mensaje;
+    this.modalConfirmarTexto = confirmarTexto;
+    this.modalSoloInfo = true;
+    this.modalVisible = true;
+    this.cdRef.detectChanges();
+  }
+
+  abrirModalConfirmacion(
+    titulo: string,
+    mensaje: string,
+    confirmarTexto: string,
+    cancelarTexto: string,
+    callback: () => void
+  ) {
+    this.modalTitulo = titulo;
+    this.modalMensaje = mensaje;
+    this.modalConfirmarTexto = confirmarTexto;
+    this.modalCancelarTexto = cancelarTexto;
+    this.modalCallback = callback;
+    this.modalSoloInfo = false;
+    this.modalVisible = true;
+  }
+
+  cerrarModal() {
+    this.modalVisible = false;
+    this.modalCallback = undefined;
+  }
+
+  modalAceptar() {
+    if (this.modalCallback) {
+      this.modalCallback();
+    }
+    this.cerrarModal();
+    void this.mostrarSurveySiEsNecesario();
+  }
+
+  private async mostrarSurveySiEsNecesario() {
+    // si se limpio captura de articulos no mostrar survey
+    if (this.articulosSolicitados.length === 0) return;
+
+    const cluesimb = this.datosClues?.hospital?.cluesimb ?? '';
+    if (!cluesimb) return;
+
+    // se valida el flag efectivo
+    const puede = await this.shouldAskSurvey(cluesimb);
+    if (!puede) return;
+
+    const APP_VERSION = (globalThis as any).process?.env?.NG_APP_VERSION ?? 'dev';
+    this.survey.maybeShow('export_success', { cluesimb, appVersion: APP_VERSION });
+  }
+
+  confirmarLimpiezaModal() {
+    this.abrirModalConfirmacion(
+      '¿Estás seguro?',
+      'Esta acción eliminará todos los articulos capturados. ¿Deseas continuar?',
+      'Sí, limpiar todo',
+      'Cancelar',
+      () => this.confirmarLimpieza()
+    );
+  }
+
+  async exportarExcelConTemplate(nombreArchivo: string) {
+    const restrict = await this.isImportRestricted();
+
+    let items = this.articulosSolicitados;
+    let fueraDeKit: string[] = [];
+
+    if (restrict) {
+      const enKit = items.filter(a => this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual));
+      fueraDeKit = items.filter(a => !this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual)).map(a => a.clave);
+      items = enKit;
+    }
+
+    // âœ… arma payload desde aquí­ (tienes datosClues, items y modoStandalone)
+    // Asegura tener datosClues fresco:
+    if (!this.modoStandalone) {
+      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+      if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
+    }
+
+    const enProduccion = environment.production;
+    const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
+
+    if (payload && enProduccion ) {
+      await this.bitacoraService.registrar(payload);
+    }
+
+    this.excelService.exportarExcelConTemplate(
+      'template.xlsx',
+      nombreArchivo,
+      items, // ya filtrados si aplica la bandera
+      this.modoStandalone,
+      this.inventarioDisponible,
+      this.cpmsDeCluesActual,
+      // predicado para saber si la clave está en el KIT
+      (clave) => this.cpmService.isClaveInKit(this.normClave(clave), this.cluesimbActual)
+    );
+    this.abrirModalInfo(
+      this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
+      'Por favor cerciórese que la información está en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
+    );
+
+    if (restrict && fueraDeKit.length) {
+      this.toast.warn({
+        title: 'Exportación filtrada',
+        content: `Se excluyeron ${fueraDeKit.length} claves fuera de KIT (flag activa).`,
+        duration: 5
+      });
+    }
+
+    if (this.generarPrecarga) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
+      let nombreArchivPrecarga = 'Precarga';
+      if (!this.modoStandalone) {
+        nombreArchivPrecarga += '-' + this.datosClues.hospital?.cluesimb!;
+        nombreArchivPrecarga += '-' + this.datosClues.tipoInsumo.split('-');
+        nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
+      }
+      nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
+      this.excelService.exportarExcelPrecarga(nombreArchivPrecarga, items);
+    }
+  }
+
+  mostrarModalExportar() {
+    this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+    let nombreArchivoCompleto = this.nombreArchivo;
+    if (cluesStr && !this.modoStandalone) {
+      this.datosClues = JSON.parse(cluesStr) as DatosClues;
+
+      nombreArchivoCompleto = this.datosClues.hospital?.cluesimb!; // this.iniciales(this.datosClues.nombreHospital);
+      nombreArchivoCompleto += '-' + this.datosClues.tipoInsumo.split('-');
+      nombreArchivoCompleto += '-' + this.datosClues.tipoPedido;
+      nombreArchivoCompleto += '_' + this.datosClues.periodo.replace(/\s+/g, '-');
+      this.nombreArchivo = nombreArchivoCompleto;
+    }
+    this.modalPedirNombreArchivo = true;
+  }
+
+  todosLosArticulosConCantidadMayorACero(): boolean {
+    return this.articulosSolicitados.every(articulo => articulo.cantidad > 0);
+  }
+
+  cantidadArticulosPendientes(): number {
+    return this.articulosSolicitados.filter(articulo => Number(articulo.cantidad ?? 0) <= 0).length;
+  }
+
+  verArticulosPendientes(): void {
+    this.tablaArticulosComponent?.scrollPrimerPendiente();
+  }
+
+  iniciales(original: string): string {
+    // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
+    const palabrasRelevantes = original
+      .split(' ')
+      .filter(palabra => !['de', 'y', 'el', 'la', 'los'].includes(palabra.toLowerCase()));
+
+    // 2. Obtener iniciales y ponerlas en mayúscula
+    const iniciales = palabrasRelevantes
+      .map(palabra => palabra.charAt(0).toUpperCase())
+      .join('');
+
+    return iniciales;
+  }
+
+  confirmarExportacion() {
+    this.modalPedirNombreArchivo = false;
+    this.exportarExcelConTemplate(this.nombreArchivo);
+  }
+
+  eliminarArticulo(index: number) {
+    this.articulosSolicitados.splice(index, 1);
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
+  }
+
+  eliminarArticuloConConfirmacion(index: number) {
+    this.abrirModalConfirmacion(
+      '¿Eliminar artículo?',
+      `¿Deseas eliminar el artículo "${this.articulosSolicitados[index].clave}"?`,
+      'Sí, eliminar',
+      'Cancelar',
+      () => this.eliminarArticulo(index)
+    );
+  }
+
+  get formularioValido(): boolean {
+    return (
+      this.claveInput.trim().length > 0 &&
+      this.descripcionInput.trim().length > 0 &&
+      this.unidadInput.trim().length > 0 &&
+      this.cantidadInput > 0 &&
+      this.cantidadInput < 99999
+    );
+  }
+
+  activarEdicion(index: number) {
+    this.modoEdicionIndex = index;
+    this.cantidadTemporal = this.articulosSolicitados[index].cantidad;
+  }
+
+  cambiarCantidad(cantidad: number) {
+    this.cantidadTemporal = cantidad;
+  }
+
+  cancelarEdicion() {
+    this.modoEdicionIndex = null;
+    this.cantidadTemporal = 0;
+  }
+
+  confirmarEdicion(index: number) {
+    this.articulosSolicitados[index].cantidad = this.cantidadTemporal;
+    this.modoEdicionIndex = null;
+    this.storageSolicitudService
+      .setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados));
+  }
+
+  esCantidadInvalida(): boolean {
+    return this.cantidadTemporal <= 0 || this.cantidadTemporal > 99999;
+  }
+
+  cerrarModalArchivo() {
+    this.modalPedirNombreArchivo = false;
+  }
+
+  buscarArchivo(fileInput: HTMLInputElement) {
+    if (this.articulosSolicitados.length > 0) {
+      this.abrirModalConfirmacion(
+        'Precarga detectada',
+        'Esto reemplazará los articulos ya capturados. Â¿Deseas continuar?',
+        'Sí, reemplazar',
+        'Cancelar',
+        () => fileInput.click()
+      );
+    } else {
+      fileInput.click();
+    }
+  }
+
+
+  async manejarArchivoPrecarga(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const archivo = (event.target as HTMLInputElement).files?.[0];
+    if (!archivo) return;
+
+    let usandoTemplate = false;
+
+    try {
+      // limpio lista de articulos capturados
+      this.articulosSolicitados = [];
+      this.existingClavesList = [];
+      const datosCluesStorage = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}') as DatosClues;
+      // a veces se pierde el this.datosClues y se queda en un clues elegido anteriormente
+      if (datosCluesStorage && this.datosClues?.hospital?.cluesimb !== datosCluesStorage?.hospital?.cluesimb) {
+        // tiene prioridad el localstorage, asi que actualizo el this.datosClues
+        this.datosClues = datosCluesStorage;
+      }
+      // 1) Asegura KIT en memoria (silencioso si falla)
+      const cluesimbActual = this.datosClues?.hospital?.cluesimb;
+
+      if (cluesimbActual) {
+        try {
+          await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual));
+          this.loadExistenciasUnidad(cluesimbActual);
+        } catch { }
+      }
+
+      // 2) Lee archivo
+      let datos = await this.excelService.leerArchivoPrecarga(archivo);
+      if (!datos || datos.length === 0) {
+        this.abrirModalInfo('Archivo vacÃ­o', 'El archivo está vacÃ­o o no contiene datos válidos.');
         return;
       }
 
-      const grouped = new Map<string, number>();
-      const homologosStock = new Map<string, number>();
-      const bestHomologos = new Map<string, HomologoSugeridoResumen>();
-      for (const row of payload.homologos.rows ?? []) {
-        const key = row.claveConsultada.trim().toUpperCase();
-        grouped.set(key, (grouped.get(key) ?? 0) + 1);
-        const candidato = row.candidato.trim().toUpperCase();
-        const resumenCandidato = this.inventarioEstatalMap().get(candidato) ?? emptyInventarioEstatal();
-        const existenciaCandidata = resumenCandidato.total;
-        homologosStock.set(key, (homologosStock.get(key) ?? 0) + existenciaCandidata);
-        const bestCurrent = bestHomologos.get(key);
-        if (!bestCurrent || existenciaCandidata > bestCurrent.stock) {
-          bestHomologos.set(key, {
-            clave: candidato,
-            stock: existenciaCandidata,
-            almacen: pickBestAlmacen(resumenCandidato),
+      // 3) Detecta columnas
+      let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
+      let colClave = headers.find(h => h.includes('clave'));
+      let colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
+        !h.includes('cantidad_propuesta'));
+
+      if (!colClave) {
+        if (datos.length < 8) {
+          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene encabezado o formato no es válido.');
+          return;
+        }
+        headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
+        colClave = headers.find(h => h.includes('clave'));
+        colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
+          !h.includes('cantidad_propuesta'));
+        if (!colClave) {
+          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS o formato no es válido.');
+          return;
+        }
+        datos = datos.slice(8);
+        usandoTemplate = true;
+      }
+
+      // 4) Parseo + acumulación de duplicadas
+      const nuevos: ArticuloSolicitud[] = [];
+      const repetidas: Record<string, number> = {};
+
+      for (const renglon of datos) {
+        let fila: any = { ...renglon };
+        if (usandoTemplate) fila = Object.values(fila);
+
+        let clave: string = ((!usandoTemplate ? (fila[colClave!] || fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
+          .toString().trim().toUpperCase();
+        if (!clave) continue;
+
+        clave = this.inventarioService.normalizarClave(clave);
+        let cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!] : fila[5]) || 0 : 0;
+
+        if (cantidad <= 0) {
+          cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!.toLocaleUpperCase()] : fila[5]) || 0 : 0;
+          if (cantidad <= 0) continue;
+        }
+
+        const existente = nuevos.find(a => a.clave === clave);
+        if (existente) {
+          existente.cantidad += cantidad;
+          repetidas[clave] = (repetidas[clave] || 0) + cantidad;
+        } else {
+          nuevos.push({
+            clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0,
+            presentacion: '',
+            observaciones: ''
           });
         }
       }
-      this.homologosMap.set(grouped);
-      this.homologosStockMap.set(homologosStock);
-      this.bestHomologoMap.set(bestHomologos);
-      this.resultados.set(payload.response.resultados
-        .map((item) => this.enrichArticulo(item))
-        .sort(compareArticulos));
-    });
 
-    this.restore();
-  }
+      // 5) Filtrar por flag (si está ON, sólo claves del KIT)
+      const restrict = await this.isImportRestricted();
+      let bloqueadas: string[] = [];
 
-  changeModo(mode: NivelCaptura): void {
-    if (this.modo() === mode) {
-      return;
-    }
-
-    this.modo.set(mode);
-    this.datosForm.controls.unidad.setValue(null);
-    this.resultados.set([]);
-    this.selectedArticle.set(null);
-    this.articuloSearch.setValue('');
-    this.clearContext();
-    this.loadUnits();
-  }
-
-  selectUnit(value: SearchableSelectValue): void {
-    const unit = this.unidades().find((item) => String(item.id) === String(value)) ?? null;
-    this.datosForm.controls.unidad.setValue(unit);
-    this.persist();
-    if (unit) {
-      this.loadUnitContext(unit);
-    } else {
-      this.clearContext();
-    }
-  }
-
-  setDate(control: 'fechaInicio' | 'fechaFin', value: string): void {
-    this.datosForm.controls[control].setValue(value ? new Date(`${value}T00:00:00`) : null);
-    this.persist();
-  }
-
-  dateValue(value: Date | null): string {
-    return value ? localDate(value) : '';
-  }
-
-  pickArticle(article: ArticuloCatalogo): void {
-    this.selectedArticle.set(article);
-    this.articuloSearch.setValue(`${article.clave} · ${article.descripcion}`);
-    this.resultados.set([]);
-  }
-
-  addArticle(): void {
-    const selected = this.selectedArticle();
-    if (!selected || this.articuloForm.invalid) {
-      this.articuloForm.markAllAsTouched();
-      return;
-    }
-
-    if (this.articulos().some((item) => normalizeKey(item.clave) === normalizeKey(selected.clave))) {
-      toast.warning('Esta clave ya se encuentra en la solicitud.');
-      return;
-    }
-
-    const { cantidad, observaciones } = this.articuloForm.getRawValue();
-    this.articulos.update((items) => [...items, {
-      ...selected,
-      cantidad,
-      observaciones: observaciones.trim(),
-    }]);
-
-    if ((selected.homologos ?? 0) > 0) {
-      toast.info(`La clave ${selected.clave} tiene homólogos configurados.`, { description: 'Podremos aprovecharlos mejor cuando migremos el inventario estatal por almacén.' });
-    }
-
-    this.selectedArticle.set(null);
-    this.articuloSearch.setValue('');
-    this.articuloForm.reset({ cantidad: 1, observaciones: '' });
-    this.persist();
-  }
-
-  updateQuantity(index: number, value: string): void {
-    const quantity = Math.max(1, Math.min(99999, Number(value) || 1));
-    this.articulos.update((items) => items.map((item, i) => i === index ? { ...item, cantidad: quantity } : item));
-    this.persist();
-  }
-
-  updateNotes(index: number, value: string): void {
-    this.articulos.update((items) => items.map((item, i) => i === index ? { ...item, observaciones: value.slice(0, 300) } : item));
-    this.persist();
-  }
-
-  removeArticle(index: number): void {
-    this.articulos.update((items) => items.filter((_, i) => i !== index));
-    this.persist();
-  }
-
-  openCpmModal(): void {
-    if (!this.selectedUnit()) {
-      toast.warning('Selecciona primero una unidad.');
-      return;
-    }
-
-    this.selectedCpmClaves.set(new Set());
-    this.cpmFilter.set('');
-    this.mesesCoberturaCpm.set(1);
-    this.cpmModalVisible.set(true);
-  }
-
-  openKitModal(): void {
-    if (!this.selectedUnit()) {
-      toast.warning('Selecciona primero una unidad.');
-      return;
-    }
-
-    this.selectedKitClaves.set(new Set());
-    this.kitFilter.set('');
-    this.kitSelected.set('');
-    this.mesesCoberturaKit.set(1);
-    this.kitModalVisible.set(true);
-  }
-
-  toggleCpmSelection(clave: string): void {
-    this.selectedCpmClaves.update((current) => {
-      const next = new Set(current);
-      next.has(clave) ? next.delete(clave) : next.add(clave);
-      return next;
-    });
-  }
-
-  toggleKitSelection(clave: string): void {
-    this.selectedKitClaves.update((current) => {
-      const next = new Set(current);
-      next.has(clave) ? next.delete(clave) : next.add(clave);
-      return next;
-    });
-  }
-
-  addSelectedCpm(): void {
-    const selected = this.filteredCpmRows().filter((item) => this.selectedCpmClaves().has(item.clave));
-    this.addSuggestedArticles(selected.map((item) => ({
-      clave: item.clave,
-      descripcion: item.descripcion,
-      presentacion: item.presentacion,
-      cantidad: computeSuggested(item.cpm, item.existenciaUnidad, this.mesesCoberturaCpm()),
-    })));
-    this.cpmModalVisible.set(false);
-  }
-
-  addSelectedKit(): void {
-    const selected = this.filteredKitRows().filter((item) => this.selectedKitClaves().has(item.clave));
-    this.addSuggestedArticles(selected.map((item) => ({
-      clave: item.clave,
-      descripcion: item.descripcion,
-      presentacion: item.presentacion,
-      cantidad: computeSuggested(item.cpm, item.existenciaUnidad, this.mesesCoberturaKit()),
-    })));
-    this.kitModalVisible.set(false);
-  }
-
-  submit(): void {
-    if (this.datosForm.invalid || !this.articulos().length) {
-      this.datosForm.markAllAsTouched();
-      toast.warning('Completa los datos y agrega al menos un artículo.');
-      return;
-    }
-
-    const datos = this.toData();
-    if (!datos) {
-      return;
-    }
-
-    this.saving.set(true);
-    this.api.registrar(datos, this.articulos()).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: (result) => {
-        toast.success(result.deduped ? 'La solicitud ya había sido registrada hoy.' : 'Solicitud registrada correctamente.');
-        this.drafts.clear();
-      },
-      error: () => toast.error('No fue posible registrar la solicitud. Tu borrador permanece guardado.'),
-    });
-  }
-
-  clear(): void {
-    this.datosForm.reset({
-      tipoPedido: 'Ordinario',
-      tipoInsumo: '',
-      responsableCaptura: '',
-      unidad: null,
-      fechaInicio: null,
-      fechaFin: null,
-    });
-    this.articulos.set([]);
-    this.articuloSearch.setValue('');
-    this.selectedArticle.set(null);
-    this.resultados.set([]);
-    this.clearContext();
-    this.drafts.clear();
-  }
-
-  setMesesCoberturaCpm(value: string): void {
-    this.mesesCoberturaCpm.set(Math.max(1, Number(value) || 1));
-  }
-
-  setMesesCoberturaKit(value: string): void {
-    this.mesesCoberturaKit.set(Math.max(1, Number(value) || 1));
-  }
-
-  private loadUnits(): void {
-    this.loadingUnits.set(true);
-    this.api.getUnidades(this.modo()).pipe(finalize(() => this.loadingUnits.set(false))).subscribe({
-      next: (units) => this.unidades.set(units),
-      error: () => toast.error('No fue posible cargar las unidades para este nivel.'),
-    });
-  }
-
-  private loadUnitContext(unit: UnidadSolicitud): void {
-    this.loadingContext.set(true);
-    forkJoin({
-      articleMap: this.api.getArticulosByCluesimbCpm(unit.cluesimb).pipe(catchError(() => of({}))),
-      cpmRows: this.api.getCpmByUnidadAll(unit.cluesimb).pipe(catchError(() => of([]))),
-      expectedRows: this.api.getExpectedVs(unit.cluesimb).pipe(catchError(() => of([]))),
-      existencias: this.api.getExistenciasByUnidad(unit.cluesimb).pipe(catchError(() => of({ rows: [] }))),
-      inventarioEstatal: this.api.getExistenciasAlmacenesFull().pipe(catchError(() => of({ count: 0, rows: [] }))),
-    }).pipe(finalize(() => this.loadingContext.set(false))).subscribe({
-      next: ({ articleMap, cpmRows, expectedRows, existencias, inventarioEstatal }) => {
-        const articleEntries = new Map<string, ArticuloCatalogo>(Object.entries(articleMap));
-        const cpmMap = new Map(cpmRows.map((item) => [item.clave_cnis.toUpperCase(), Number(item.cpm ?? 0)]));
-        const existenciasMap = new Map(existencias.rows.map((item) => [item.clave_cnis.toUpperCase(), item]));
-        const inventarioEstatalMap = buildInventarioEstatalMap(inventarioEstatal.rows ?? []);
-        const expectedGrouped = groupExpectedRows(expectedRows, articleEntries, existenciasMap, inventarioEstatalMap);
-
-        this.articleMap.set(articleEntries);
-        this.cpmMap.set(cpmMap);
-        this.existenciasMap.set(existenciasMap);
-        this.inventarioEstatalMap.set(inventarioEstatalMap);
-        this.kitMap.set(new Map(expectedGrouped.map((item) => [item.clave, item.kits])));
-        this.cpmRows.set(cpmRows.map((item) => {
-          const key = item.clave_cnis.toUpperCase();
-          const article = articleEntries.get(key);
-          const inventory = inventarioEstatalMap.get(key) ?? emptyInventarioEstatal();
-          return {
-            clave: key,
-            descripcion: article?.descripcion ?? key,
-            presentacion: article?.presentacion ?? '',
-            cpm: Number(item.cpm ?? 0),
-            existenciaUnidad: Number(existenciasMap.get(key)?.existencia_total ?? 0),
-            existenciaEstatal: inventory.total,
-            existenciasAzm: inventory.azm,
-            existenciasAze: inventory.aze,
-            existenciasAzt: inventory.azt,
-            mejorAlmacen: pickBestAlmacen(inventory),
-            recomendacionAbasto: buildRecommendation(inventory),
-            mejorHomologoStock: 0,
-          };
-        }).filter((item) => item.cpm > 0).sort(compareSuggestionRows));
-        this.kitRows.set(expectedGrouped
-          .map((item) => ({
-            ...item,
-            mejorAlmacen: pickBestAlmacen({
-              total: item.existenciaEstatal,
-              azm: item.existenciasAzm,
-              aze: item.existenciasAze,
-              azt: item.existenciasAzt,
-            }),
-            recomendacionAbasto: buildRecommendation({
-              total: item.existenciaEstatal,
-              azm: item.existenciasAzm,
-              aze: item.existenciasAze,
-              azt: item.existenciasAzt,
-            }),
-            mejorHomologoStock: 0,
-          }))
-          .sort(compareSuggestionRows));
-        this.kitCodes.set([...new Set(expectedGrouped.flatMap((item) => item.kits))].sort((a, b) => a.localeCompare(b)));
-        if (this.resultados().length > 0) {
-          this.resultados.set(this.resultados().map((item) => this.enrichArticulo(item)).sort(compareArticulos));
+      if (restrict) {
+        const permitidas: ArticuloSolicitud[] = [];
+        for (const a of nuevos) {
+          const ok = this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual);
+          if (ok) permitidas.push(a); else bloqueadas.push(a.clave);
         }
-      },
-      error: () => toast.error('No fue posible cargar el contexto de CPM/KIT para la unidad.'),
-    });
-  }
-
-  private clearContext(): void {
-    this.cpmRows.set([]);
-    this.kitRows.set([]);
-    this.kitCodes.set([]);
-    this.articleMap.set(new Map());
-    this.cpmMap.set(new Map());
-    this.existenciasMap.set(new Map());
-    this.kitMap.set(new Map());
-    this.homologosMap.set(new Map());
-    this.homologosStockMap.set(new Map());
-    this.bestHomologoMap.set(new Map());
-    this.inventarioEstatalMap.set(new Map());
-  }
-
-  private enrichArticulo(item: ArticuloCatalogo): ArticuloCatalogo {
-    const key = item.clave.toUpperCase();
-    const inventarioEstatal = this.inventarioEstatalMap().get(key) ?? emptyInventarioEstatal();
-    const bestHomologo = this.bestHomologoMap().get(key);
-    return {
-      ...item,
-      cpm: this.cpmMap().get(key) ?? 0,
-      existenciaUnidad: Number(this.existenciasMap().get(key)?.existencia_total ?? 0),
-      existenciaEstatal: inventarioEstatal.total,
-      existenciasAzm: inventarioEstatal.azm,
-      existenciasAze: inventarioEstatal.aze,
-      existenciasAzt: inventarioEstatal.azt,
-      enKit: this.kitMap().has(key),
-      homologos: this.homologosMap().get(key) ?? 0,
-      existenciaHomologosEstatal: this.homologosStockMap().get(key) ?? 0,
-      mejorAlmacen: pickBestAlmacen(inventarioEstatal),
-      recomendacionAbasto: buildArticleRecommendation(inventarioEstatal, bestHomologo),
-      mejorHomologoClave: bestHomologo?.clave,
-      mejorHomologoStock: bestHomologo?.stock ?? 0,
-      mejorHomologoAlmacen: bestHomologo?.almacen,
-    };
-  }
-
-  private addSuggestedArticles(rows: Array<ArticuloCatalogo & { cantidad: number }>): void {
-    const existing = new Set(this.articulos().map((item) => normalizeKey(item.clave)));
-    const next: ArticuloSolicitud[] = [];
-
-    for (const row of rows) {
-      if (!row.cantidad || row.cantidad <= 0 || existing.has(normalizeKey(row.clave))) {
-        continue;
+        this.articulosSolicitados = permitidas;
+      } else {
+        this.articulosSolicitados = nuevos;
       }
-      next.push({
-        clave: row.clave,
-        descripcion: row.descripcion,
-        presentacion: row.presentacion,
-        cantidad: row.cantidad,
-        observaciones: '',
-      });
-      existing.add(normalizeKey(row.clave));
-    }
+      this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
 
-    if (!next.length) {
-      toast.warning('No hubo claves nuevas para agregar.');
-      return;
-    }
+      // 6) Completar desc/unidad + poner CPM
+      this.autocompletarDatos();
 
-    this.articulos.update((items) => [...items, ...next]);
-    this.persist();
-    toast.success(`Se agregaron ${next.length} clave(s) a la solicitud.`);
+      // 7) Mátricas del KIT
+      const kitTotal = this.cpmService.getKitCountFor(this.cluesimbActual);
+      const clavesNorm = this.articulosSolicitados.map(a => this.normClave(a.clave));
+      const enKit = clavesNorm.filter(c => this.cpmService.isClaveInKit(c, this.cluesimbActual)).length;
+      const fueraKit = this.articulosSolicitados.length - enKit;
+
+      // 8) Duplicadas (preview bonito)
+      const dupKeys = Object.keys(repetidas);
+      const dupPreview = dupKeys.length > 0
+        ? (() => {
+          const top = dupKeys.slice(0, 10).join(', ');
+          const extra = dupKeys.length > 10 ? ` y ${dupKeys.length - 10} másâ€¦` : '';
+          return `${top}${extra}`;
+        })()
+        : '';
+
+      // 9) ÃšNICO modal de resumen
+      const lineas: string[] = [];
+      lineas.push(`âœ” Claves Importadas: ${this.articulosSolicitados.length}`);
+      /*lineas.push(`âœ” En KIT: ${enKit}/${kitTotal || 'Â¿?'}`);
+      if (bloqueadas.length) {
+        lineas.push(`â›” Bloqueadas por bandera: ${bloqueadas.length}`);
+      } else {
+        lineas.push(`â€¢ Fuera de KIT: ${fueraKit}`);
+      }*/
+      if (dupKeys.length > 0) lineas.push(`â„¹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
+
+      // âœ¨ FLUJO 2: NUEVO - Detectar homologos para articulos importados
+      this.detectarYMostrarHomologosImport();
+
+      this.abrirModalInfo('Importación completada', lineas.join('\n'));
+
+    } catch (error) {
+      console.error('Error al leer archivo:', error);
+      this.abrirModalInfo('Error al importar', 'Hubo un problema al procesar el archivo.');
+    } finally {
+      input.value = '';
+    }
   }
 
-  private restore(): void {
-    const draft = this.drafts.load();
-    if (!draft) {
-      return;
-    }
+  autocompletarDatos() {
+    this.articulosService.getArticulosMapa().subscribe({
+      next: (catalogo) => {
+        for (const art of this.articulosSolicitados) {
+          const encontrado = catalogo[(art.clave || '').toUpperCase()];
+          if (encontrado) {
+            art.descripcion = encontrado.descripcion;
+            art.unidadMedida = encontrado.presentacion ?? '';
+            const cpm = this.cpmIndex.get(this.normClave(art.clave)) ?? 0;
+            art.cpm = cpm;
+          }
+        }
 
-    this.articulos.set(draft.articulos ?? []);
-    if (draft.datos) {
-      this.datosForm.patchValue({
-        ...draft.datos,
-        fechaInicio: new Date(`${draft.datos.fechaInicio}T00:00:00`),
-        fechaFin: new Date(`${draft.datos.fechaFin}T00:00:00`),
-      });
-      const inferredMode = draft.datos.unidad?.esSegundoNivel ? 'SEGUNDO_NIVEL' : 'PRIMER_NIVEL';
-      this.modo.set(inferredMode);
-      this.loadUnits();
-    }
-  }
-
-  persist(): void {
-    this.drafts.save({ datos: this.toData(), articulos: this.articulos() });
-  }
-
-  private toData(): DatosSolicitud | null {
-    const value = this.datosForm.getRawValue();
-    if (!value.unidad || !value.fechaInicio || !value.fechaFin || !value.tipoInsumo || !value.responsableCaptura) {
-      return null;
-    }
-
-    return {
-      unidad: value.unidad,
-      tipoInsumo: value.tipoInsumo,
-      tipoPedido: value.tipoPedido,
-      responsableCaptura: value.responsableCaptura.trim(),
-      fechaInicio: localDate(value.fechaInicio),
-      fechaFin: localDate(value.fechaFin),
-    };
-  }
-}
-
-function groupExpectedRows(
-  rows: CpmExpectedRowDto[],
-  articleEntries: Map<string, ArticuloCatalogo>,
-  existenciasMap: Map<string, ExistenciaUnidadRowDto>,
-  inventarioEstatalMap: Map<string, InventarioEstatalResumen>,
-): KitEntry[] {
-  const grouped = new Map<string, KitEntry>();
-
-  for (const row of rows) {
-    const clave = (row.clave_cnis ?? '').trim().toUpperCase();
-    if (!clave) {
-      continue;
-    }
-
-    const current = grouped.get(clave);
-    const article = articleEntries.get(clave);
-    const inventario = inventarioEstatalMap.get(clave) ?? emptyInventarioEstatal();
-    const kits = Array.from(new Set([...(current?.kits ?? []), ...((row.kit_codigos ?? []).map((item) => item.trim()).filter(Boolean))]));
-    const cpm = Number(row.cpm ?? current?.cpm ?? 0);
-
-    grouped.set(clave, {
-      clave,
-      descripcion: article?.descripcion ?? current?.descripcion ?? clave,
-      presentacion: article?.presentacion ?? current?.presentacion ?? '',
-      cpm,
-      existenciaUnidad: Number(existenciasMap.get(clave)?.existencia_total ?? 0),
-      existenciaEstatal: inventario.total,
-      existenciasAzm: inventario.azm,
-      existenciasAze: inventario.aze,
-      existenciasAzt: inventario.azt,
-      mejorAlmacen: pickBestAlmacen(inventario),
-      recomendacionAbasto: buildRecommendation(inventario),
-      mejorHomologoStock: 0,
-      kits,
+        this.storageSolicitudService
+          .setArticulosSolicitadosInLocalStorage(
+            JSON.stringify(this.articulosSolicitados));
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error en autocompletarDatos():', err);
+        this.abrirModalInfo('Error', 'No se pudieron autocompletar los datos de los insumos.');
+      }
     });
   }
 
-  return [...grouped.values()].sort((a, b) => a.clave.localeCompare(b.clave));
-}
+  private async shouldAskSurvey(cluesimb: string): Promise<boolean> {
+    if (!cluesimb) return false;
 
-function computeSuggested(cpm: number, existencia: number, meses: number): number {
-  const target = Math.max(0, Math.ceil((cpm || 0) * Math.max(1, meses)));
-  return Math.max(0, target - Math.max(0, existencia || 0));
-}
-
-function compareArticulos(a: ArticuloCatalogo, b: ArticuloCatalogo): number {
-  return compareSuggestionRows(
-    {
-      clave: a.clave,
-      cpm: a.cpm ?? 0,
-      existenciaUnidad: a.existenciaUnidad ?? 0,
-      existenciaEstatal: a.existenciaEstatal ?? 0,
-      mejorHomologoStock: a.mejorHomologoStock ?? 0,
-    },
-    {
-      clave: b.clave,
-      cpm: b.cpm ?? 0,
-      existenciaUnidad: b.existenciaUnidad ?? 0,
-      existenciaEstatal: b.existenciaEstatal ?? 0,
-      mejorHomologoStock: b.mejorHomologoStock ?? 0,
-    },
-  );
-}
-
-function compareSuggestionRows(
-  a: Pick<CpmEntry, 'cpm' | 'existenciaUnidad' | 'existenciaEstatal' | 'mejorHomologoStock' | 'clave'>,
-  b: Pick<CpmEntry, 'cpm' | 'existenciaUnidad' | 'existenciaEstatal' | 'mejorHomologoStock' | 'clave'>,
-): number {
-  const shortageA = computeSuggested(a.cpm, a.existenciaUnidad, 1);
-  const shortageB = computeSuggested(b.cpm, b.existenciaUnidad, 1);
-  const fallbackStockA = Math.max(a.existenciaEstatal, a.mejorHomologoStock ?? 0);
-  const fallbackStockB = Math.max(b.existenciaEstatal, b.mejorHomologoStock ?? 0);
-
-  return (
-    (shortageB - shortageA) ||
-    (fallbackStockB - fallbackStockA) ||
-    ((b.cpm ?? 0) - (a.cpm ?? 0)) ||
-    a.clave.localeCompare(b.clave)
-  );
-}
-
-function buildArticleRecommendation(
-  inventario: InventarioEstatalResumen,
-  bestHomologo?: HomologoSugeridoResumen,
-): string {
-  if (inventario.total > 0) {
-    return buildRecommendation(inventario);
-  }
-
-  if (bestHomologo && bestHomologo.stock > 0) {
-    return `Considerar homólogo ${bestHomologo.clave} desde ${bestHomologo.almacen} (${bestHomologo.stock} piezas).`;
-  }
-
-  return 'Sin stock estatal visible por ahora.';
-}
-
-function buildRecommendation(inventario: InventarioEstatalResumen): string {
-  if (inventario.total <= 0) {
-    return 'Sin stock estatal visible por ahora.';
-  }
-
-  const almacen = pickBestAlmacen(inventario);
-  return almacen !== 'Sin preferencia'
-    ? `Priorizar surtimiento desde ${almacen}.`
-    : 'Hay stock estatal, sin almacén dominante claro.';
-}
-
-function pickBestAlmacen(inventario: InventarioEstatalResumen): string {
-  const ranking = [
-    ['AZM', inventario.azm],
-    ['AZE', inventario.aze],
-    ['AZT', inventario.azt],
-  ] as const;
-
-  const best = [...ranking].sort((a, b) => b[1] - a[1])[0];
-  return best && best[1] > 0 ? best[0] : 'Sin preferencia';
-}
-
-function buildInventarioEstatalMap(rows: TemporalExistenciaRowDto[]): Map<string, InventarioEstatalResumen> {
-  const grouped = new Map<string, InventarioEstatalResumen>();
-
-  for (const row of rows) {
-    const clave = normalizeKey(row.clave_cnis ?? '');
-    if (!clave) {
-      continue;
+    const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+    const cacheKey = `${cluesimb}|${nivel}`;
+    if (this.surveyFlagCache.has(cacheKey)) {
+      return this.surveyFlagCache.get(cacheKey)!;
     }
 
-    const current = grouped.get(clave) ?? emptyInventarioEstatal();
-    const next = { ...current };
-    const existencia = Math.max(0, Number(row.existencia ?? 0));
-    const alias = normalizeKey(row.alias_sas ?? '');
-
-    next.total += existencia;
-    if (alias === 'AZM') {
-      next.azm += existencia;
-    } else if (alias === 'AZE') {
-      next.aze += existencia;
-    } else if (alias === 'AZT') {
-      next.azt += existencia;
+    try {
+      const flags = await this.featureFlagsService.getEffective({ cluesimb, nivel });
+      const allowed = !!flags['APLICAR_ENCUESTAS'];
+      this.surveyFlagCache.set(cacheKey, allowed);
+      return allowed;
+    } catch (err) {
+      console.warn('No se pudo consultar flags; se omite encuesta.', err);
+      return false; // fail-closed: sin flags -> no encuesta
     }
-
-    grouped.set(clave, next);
   }
 
-  return grouped;
+  /** Normaliza CNIS para usar como llave en inventario */
+  private normClave(clave: string | undefined | null): string {
+    return this.inventarioService.normalizarClave((clave ?? '').toString().toUpperCase());
+  }
+
+  /** Enriquecer items del autocomplete con existencias AZM/AZE/AZT (si hay inventario) */
+  private enrichWithExistencias<T extends Record<string, any>>(items: T[]): Array<T & EnrichedProps> {
+    if (!items?.length) return items as Array<T & EnrichedProps>;
+
+    return items.map((it) => {
+      const base = it as Record<string, any>;     // â† asegura que es "object" para el spread
+      const clave = this.normClave(base['clave']);
+
+      const inv = this.invIndex.get(clave);
+      const azm = inv?.existenciasAZM ?? 0;
+      const aze = inv?.existenciasAZE ?? 0;
+      const azt = inv?.existenciasAZT ?? 0;
+      const total = azm + aze + azt;
+
+      const cpm = this.cpmIndex.get(clave) ?? this.cpmService.getCpmForClave(clave, this.cluesimbActual) ?? 0;
+      const enKit = this.cpmService.isClaveInKit(clave, this.cluesimbActual);
+
+      return {
+        ...base,               // âœ… ya es un object
+        _azm: azm,
+        _aze: aze,
+        _azt: azt,
+        _totalExistencias: total,
+        _cpm: cpm,
+        _enKit: enKit,
+      } as T & EnrichedProps;
+    });
+  }
+
+  private async isImportRestricted(): Promise<boolean> {
+    const cluesimb =
+      this.datosClues?.hospital?.cluesimb ||
+      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+
+    // const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+
+    try {
+      // const eff = await this.flags.getEffective({ cluesimb, nivel });
+      const eff = await this.featureFlagsService.getEffective({ cluesimb });
+      return !!eff['IMPORT_LIMIT_TO_KIT'];
+    } catch {
+      // si no se pudo consultar el flag, no bloquees (comportamiento actual)
+      return false;
+    }
+  }
+
+  private async loadEditCpmsFlag(): Promise<void> {
+    const cluesimb =
+      this.datosClues?.hospital?.cluesimb ||
+      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
+    const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
+
+    if (!cluesimb) {
+      this.canEditCpms = false;
+      return;
+    }
+
+    try {
+      const eff = await this.featureFlagsService.getEffective({ cluesimb, nivel });
+      this.canEditCpms = !!eff['EDIT_CPMS'];
+    } catch {
+      // fail-closed para no exponer edicion por error de flags
+      this.canEditCpms = false;
+    } finally {
+      this.cdRef.detectChanges();
+    }
+  }
+
+  private loadExistenciasUnidad(cluesimb: string) {
+    if (!cluesimb) { this.existUnidadIndex.clear(); return; }
+
+    this.existTemp.byUnidad(cluesimb).subscribe(async rows => {
+      const entries = await Promise.all(rows.map(async r => {
+        const factor = await this.trazabilidadService
+          .getFactorConversionPorUnidad(r.clave_cnis, cluesimb);
+        return [r.clave_cnis, aplicarFactorConversion(Number(r.existencia_total ?? 0), factor)] as const;
+      }));
+      const idx = new Map<string, number>(entries);
+      this.existUnidadIndex = idx;
+
+      // Enriquecer el autocomplete actual (si ya hay resultados en pantalla)
+      this.autocompleteResults = (this.autocompleteResults || []).map(it => ({
+        ...it,
+        _existUnidad: idx.get(it.clave) ?? 0
+      }));
+    });
+  }
+
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
+  kitModalVisible = false;
+  cpmModalVisible = false;
+  cpmEditModalVisible = signal(false);
+
+  /** PARA MODAL DE CLAVES POR CPM */
+  abrirCpmModal() {
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    this.cpmModalVisible = true;
+  }
+
+  async abrirCpmEditModal() {
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    await this.loadEditCpmsFlag();
+
+    if (!this.canEditCpms) {
+      this.toast.warn({
+        title: 'No autorizado',
+        content: 'La edicion de CPM no esta habilitada para esta unidad.',
+        duration: 5
+      });
+      this.cpmEditModalVisible.set(false);
+      return;
+    }
+
+    this.cpmEditModalVisible.set(true);
+  }
+
+  async onCpmEditUpdated() {
+    if (!this.cluesimbActual) return;
+    try {
+      const rows = await firstValueFrom(this.cpmService.refreshForCluesimb(this.cluesimbActual));
+      this.cpmsDeCluesActual = this.mapCpmRowsToCPMS(rows as any, this.cluesimbActual);
+
+      this.cpmIndex.clear();
+      for (const r of this.cpmsDeCluesActual) {
+        this.cpmIndex.set(this.normClave(r.clave), Number(r.cantidad) || 0);
+      }
+
+      // sincroniza CPM ya capturado en la solicitud sin alterar cantidades
+      this.articulosSolicitados = this.articulosSolicitados.map(art => ({
+        ...art,
+        cpm: this.cpmIndex.get(this.normClave(art.clave)) ?? 0
+      }));
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+        JSON.stringify(this.articulosSolicitados)
+      );
+
+      this.toast.success({
+        title: 'CPM actualizado',
+        content: 'Se refresco la captura con los nuevos CPM de la unidad.',
+        duration: 4
+      });
+      this.cdRef.detectChanges();
+    } catch {
+      this.toast.warn({
+        title: 'Aviso',
+        content: 'Se guardaron cambios, pero no se pudo refrescar CPM en pantalla.',
+        duration: 5
+      });
+    }
+  }
+
+  /** PARA MODAL DE CLAVES DE KIT */
+  abrirKitModal() {
+    // forzar recarga de this.datosClues de localstorageService porque este componente no lo recarga
+    this.datosClues = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}');
+    this.kitModalVisible = true;
+  }
+
+  /** Recibe lo que emite el modal (por CPM o por kit) y
+   * lo integra (respetando tu flujo actual)
+   */
+  onKitAdd(items: ArticuloSolicitud[]) {
+    if (!items?.length) return;
+    const ya = new Set(this.existingClavesList);
+    const nuevos = items.filter(i => !ya.has(this.normClave(i.clave)));
+    if (!nuevos.length) return;
+
+    this.articulosSolicitados = [...this.articulosSolicitados, ...nuevos];
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    // Detectar homologos para articulos agregados desde CPM/KIT y resolver en modal de resumen.
+    this.detectarYMostrarHomologosDesdeModales(nuevos);
+
+    // this.autocompletarDatos();
+  }
+
+  // ============================================
+  // FLUJO 3: Mátodos para Modales CPM/KIT
+  // ============================================
+
+  private async detectarYMostrarHomologosDesdeModales(articulos: ArticuloSolicitud[]) {
+    try {
+      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+        articulos,
+        this.inventarioDisponible,
+        this.cluesimbActual
+      );
+
+      if (sugerencias?.length > 0) {
+        this.homologoResumenOrigen = 'modales';
+        this.homologoResumenTotalImportados = articulos.length;
+        this.articulosConHomologos = sugerencias;
+        this.importResumenHomologosVisible = true;
+
+        this.toast.warn({
+          title: `${sugerencias.length} oportunidad(es)`,
+          content: 'Elige las alternativas antes de confirmar',
+          duration: 5
+        });
+
+        this.cdRef.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error detectando homologos en modales:', error);
+      // Fallar silenciosamente
+    }
+  }
+
+  /**
+   * Maneja el reemplazo desde la tabla de oportunidades
+   */
+  async onReemplazarDesdeOportunidades(event: any) {
+    const { original, candidato } = event;
+    if (!original || !candidato) return;
+
+    const index = this.articulosSolicitados.findIndex(a => a.clave === original.originalClave);
+    if (index < 0) return;
+
+    const nuevaCantidad = Math.round(original.originalCantidad * Number(candidato.factor));
+
+    this.articulosSolicitados[index].clave = candidato.sustituto;
+    this.articulosSolicitados[index].cantidad = nuevaCantidad;
+
+    // Buscar descripción del nuevo artículo
+    try {
+      const resp = await this.articulosService.buscarArticulos(candidato.sustituto).toPromise();
+      if (resp?.resultados && resp.resultados.length > 0) {
+        const art = resp.resultados[0];
+        this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
+        this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
+      }
+    } catch {
+      // Silencio
+    }
+
+    this.rebuildExistingClaves();
+    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      JSON.stringify(this.articulosSolicitados)
+    );
+
+    // Remover de oportunidades
+    this.oportunidadesDisponibles = this.oportunidadesDisponibles.filter(
+      o => o.originalClave !== original.originalClave
+    );
+
+    if (this.oportunidadesDisponibles.length === 0) {
+      this.mostrarOportunidadesEnTabla = false;
+    }
+
+    this.toast.success({
+      title: 'Artículo reemplazado',
+      content: `${original.originalClave} â†’ ${candidato.sustituto}`,
+      duration: 3
+    });
+
+    this.cdRef.detectChanges();
+  }
+
+  /**
+   * Cierra la sección de oportunidades
+   */
+  cerrarOportunidades() {
+    this.oportunidadesDisponibles = [];
+    this.mostrarOportunidadesEnTabla = false;
+    this.cdRef.detectChanges();
+  }
+
+  existingClavesList: string[] = [];
+  private rebuildExistingClaves() {
+    this.existingClavesList = this.articulosSolicitados.map(a => this.normClave(a.clave));
+  }
+
+  trackAutocompleteItem(_: number, item: any): string {
+    return item?.clave ?? '';
+  }
+
+  get cluesimbActual(): string {
+    // si datosClues es null regresa ''
+    if (!this.datosClues) return '';
+    // si el hospital es null regresa ''
+    if (!this.datosClues.hospital) return '';
+    // si el cluesimb es null regresa ''
+    if (!this.datosClues.hospital.cluesimb) return '';
+    return this.datosClues.hospital.cluesimb;
+  }
+  /*************************************************************************************/
+  /*************************************************************************************/
+  /*************************************************************************************/
+
+  /**
+ * Maneja Enter en los inputs del formulario de captura.
+ * Si el formulario es válido, no hay edición activa y no hay autocomplete abierto,
+ * dispara agregarArticulo().
+ */
+  onFormularioEnter(event?: Event) {
+    const keyboardEvent = event as KeyboardEvent | undefined;
+
+    keyboardEvent?.preventDefault();
+    keyboardEvent?.stopPropagation();
+
+    // No hacer nada si el formulario no está listo
+    if (!this.formularioValido) return;
+
+    // No permitir mientras se edita un renglón
+    if (this.modoEdicionIndex !== null) return;
+
+    // Si sigue abierto el autocomplete, que primero se seleccione la clave
+    if (this.autocompleteResults?.length) return;
+
+    // Disparar alta
+    void this.agregarArticulo();
+  }
+
+  /**
+   * Actualiza la lista de CPMS por unidad desde el componente hijo.
+   * @param $event
+   */
+  actualizarCPMsPorUnidad($event: CPMS[]) {
+    this.cpmsDeCluesActual = $event;
+  }
 }
 
-function emptyInventarioEstatal(): InventarioEstatalResumen {
-  return {
-    total: 0,
-    azm: 0,
-    aze: 0,
-    azt: 0,
-  };
-}
 
-function normalize(value: string): string {
-  return value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-}
 
-function normalizeKey(value: string): string {
-  return value.replace(/\./g, '').trim().toUpperCase();
-}
 
-function localDate(value: Date): string {
-  const offset = value.getTimezoneOffset();
-  return new Date(value.getTime() - offset * 60000).toISOString().slice(0, 10);
-}
 
-function validDateRange(control: AbstractControl): ValidationErrors | null {
-  const start = control.get('fechaInicio')?.value as Date | null;
-  const end = control.get('fechaFin')?.value as Date | null;
-  return start && end && end < start ? { dateRange: true } : null;
-}
+

@@ -16,30 +16,27 @@ import {
   UnidadSolicitudDto,
 } from './solicitudes-api.contracts';
 
+/**
+ * @author Codex agent
+ */
 @Injectable({ providedIn: 'root' })
 export class SolicitudesApiService {
   private readonly http = inject(HttpClient);
   private readonly config = inject<AppConfig>(APP_CONFIG);
   private almacenesInventory$?: Observable<TemporalExistenciaRowsResponseDto>;
 
-  getUnidades(nivel?: NivelCaptura): Observable<UnidadSolicitud[]> {
+  getUnidadesPrimerNivel(): Observable<UnidadSolicitud[]> {
+    return this.http.get<UnidadSolicitudDto[]>(this.url('/api/unidades/primer-nivel')).pipe(
+      map((rows) => this.mapUnidades(rows)),
+    );
+  }
+
+  getUnidadesSegundoNivel(): Observable<UnidadSolicitud[]> {
     let params = new HttpParams();
-    if (nivel) {
-      params = params.set('nivel', nivel);
-    }
+    params = params.set('nivel', 'SEGUNDO_NIVEL');
 
     return this.http.get<UnidadSolicitudDto[]>(this.url('/api/unidades'), { params }).pipe(
-      map((rows) => rows.filter((row) => Boolean(row.cluesimb)).map((row) => ({
-        id: row.id,
-        cluesimb: row.cluesimb ?? '',
-        cluessa: row.cluessa ?? '',
-        nombre: row.nombre_de_unidad ?? row.nombre ?? 'Unidad sin nombre',
-        municipio: row.nombre_municipio ?? '',
-        localidad: row.nombre_localidad ?? '',
-        esSegundoNivel: row.es_segundo_nivel ?? false,
-        nivelAtencion: row.nivel_atencion ?? '',
-        tipoUnidad: row.tipo_unidad ?? '',
-      }))),
+      map((rows) => this.mapUnidades(rows)),
     );
   }
 
@@ -61,7 +58,7 @@ export class SolicitudesApiService {
     const request: CrearBitacoraRequestDto = {
       cluesimb: datos.unidad.cluesimb,
       tipoPedido: datos.tipoPedido,
-      tipoInsumo: datos.tipoInsumo,
+      tipoInsumo: datos.tipoInsumo.join(', '),
       periodo: `${datos.fechaInicio} - ${datos.fechaFin}`,
       articulos: articulos.map(({ clave, cantidad }) => ({ clave, cantidad })),
     };
@@ -112,6 +109,22 @@ export class SolicitudesApiService {
     return this.http.post<HomologoRowsResponseDto>(this.url('/api/homologos/batch-forward'), {
       claves: claves.map((item) => item.trim().toUpperCase()).filter(Boolean),
     });
+  }
+
+  private mapUnidades(rows: UnidadSolicitudDto[]): UnidadSolicitud[] {
+    return rows
+      .filter((row) => Boolean(row.cluesimb))
+      .map((row) => ({
+        id: row.id,
+        cluesimb: row.cluesimb ?? '',
+        cluessa: row.cluessa ?? '',
+        nombre: row.nombre_de_unidad ?? row.nombre ?? 'Unidad sin nombre',
+        municipio: row.nombre_municipio ?? '',
+        localidad: row.nombre_localidad ?? '',
+        esSegundoNivel: row.es_segundo_nivel ?? false,
+        nivelAtencion: row.nivel_atencion ?? '',
+        tipoUnidad: row.tipo_unidad ?? '',
+      }));
   }
 
   private url(path: string): string { return `${this.config.apiBaseUrl}${path}`; }

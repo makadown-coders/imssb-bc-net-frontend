@@ -1,6 +1,6 @@
-import { Component, HostListener, computed, input, output, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, effect, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideChevronsUpDown, lucideSearch } from '@ng-icons/lucide';
+import { lucideCheck, lucideChevronDown, lucideSearch } from '@ng-icons/lucide';
 import { HlmInput } from '@spartan-ng/helm/input';
 
 export type SearchableSelectValue = string | number | boolean | null;
@@ -14,14 +14,16 @@ export interface SearchableSelectOption {
 @Component({
   selector: 'app-searchable-select',
   imports: [NgIcon, HlmInput],
-  providers: [provideIcons({ lucideCheck, lucideChevronsUpDown, lucideSearch })],
+  providers: [provideIcons({ lucideCheck, lucideChevronDown, lucideSearch })],
   templateUrl: './searchable-select.component.html',
   styleUrl: './searchable-select.component.scss',
 })
 export class SearchableSelectComponent {
+  @ViewChild('searchInput') private readonly searchInput?: ElementRef<HTMLInputElement>;
+
   readonly label = input.required<string>();
-  readonly placeholder = input('Selecciona una opcion');
-  readonly searchPlaceholder = input('Escribe para filtrar');
+  readonly placeholder = input('Selecciona una opción');
+  readonly searchPlaceholder = input('Escribe para buscar');
   readonly emptyLabel = input('Sin coincidencias');
   readonly options = input<readonly SearchableSelectOption[]>([]);
   readonly value = input<SearchableSelectValue>(null);
@@ -30,6 +32,8 @@ export class SearchableSelectComponent {
 
   readonly open = signal(false);
   readonly search = signal('');
+  readonly searchDirty = signal(false);
+  readonly highlightedIndex = signal(0);
 
   private readonly instanceId = `searchable-select-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -38,43 +42,133 @@ export class SearchableSelectComponent {
   );
 
   readonly filteredOptions = computed(() => {
-    const term = normalize(this.search());
-    if (!term) {
-      return this.options();
+    const allOptions = this.options();
+    if (!this.searchDirty()) {
+      return allOptions;
     }
 
-    return this.options().filter((option) => {
+    const term = normalize(this.search());
+    if (!term) {
+      return allOptions;
+    }
+
+    return allOptions.filter((option) => {
       const haystack = normalize(`${option.label} ${option.keywords ?? ''}`);
       return haystack.includes(term);
     });
   });
 
-  toggle(): void {
+  constructor() {
+    effect(() => {
+      const selectedLabel = this.selectedOption()?.label ?? '';
+      if (!this.open()) {
+        this.search.set(selectedLabel);
+        this.searchDirty.set(false);
+        this.highlightedIndex.set(0);
+      }
+    });
+  }
+
+  openPanel(): void {
     if (this.disabled()) {
       return;
     }
 
-    this.open.update((current) => {
-      const next = !current;
-      if (next) {
-        this.search.set('');
-      }
-      return next;
-    });
+    this.open.set(true);
+    this.searchDirty.set(false);
+    this.highlightedIndex.set(0);
   }
 
   close(): void {
     this.open.set(false);
-    this.search.set('');
+    this.searchDirty.set(false);
+    this.highlightedIndex.set(0);
+    this.search.set(this.selectedOption()?.label ?? '');
   }
 
-  updateSearch(value: string): void {
+  handleFocus(): void {
+    this.openPanel();
+  }
+
+  handleInput(value: string): void {
+    if (this.disabled()) {
+      return;
+    }
+
+    if (!this.open()) {
+      this.openPanel();
+    }
+
     this.search.set(value);
+    this.searchDirty.set(true);
+    this.highlightedIndex.set(0);
   }
 
   select(option: SearchableSelectOption): void {
     this.valueChange.emit(option.value);
+    this.search.set(option.label);
     this.close();
+  }
+
+  clearSelection(): void {
+    this.valueChange.emit(null);
+    this.search.set('');
+    this.searchDirty.set(true);
+    this.openPanel();
+    queueMicrotask(() => this.searchInput?.nativeElement.focus());
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (this.disabled()) {
+      return;
+    }
+
+    const options = this.filteredOptions();
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (!this.open()) {
+          this.openPanel();
+          return;
+        }
+        if (options.length > 0) {
+          this.highlightedIndex.update((index) => (index + 1) % options.length);
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (!this.open()) {
+          this.openPanel();
+          return;
+        }
+        if (options.length > 0) {
+          this.highlightedIndex.update((index) => (index - 1 + options.length) % options.length);
+        }
+        break;
+      case 'Enter':
+        if (this.open() && options.length > 0) {
+          event.preventDefault();
+          this.select(options[this.highlightedIndex()] ?? options[0]);
+        }
+        break;
+      case 'Escape':
+        if (this.open()) {
+          event.preventDefault();
+          this.close();
+        }
+        break;
+      case 'Backspace':
+        if (!this.searchDirty() && this.selectedOption() && this.search().length > 0) {
+          this.search.set('');
+          this.searchDirty.set(true);
+          this.highlightedIndex.set(0);
+          event.preventDefault();
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   @HostListener('document:click', ['$event.target'])

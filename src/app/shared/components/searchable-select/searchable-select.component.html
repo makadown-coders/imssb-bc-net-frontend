@@ -1,41 +1,52 @@
 <label class="searchable-select" [attr.data-searchable-select-id]="rootId">
   <span class="field-label">{{ label() }}</span>
 
-  <button
-    class="trigger"
-    type="button"
-    [class.is-open]="open()"
-    [disabled]="disabled()"
-    (click)="toggle()">
-    <span class="trigger-value" [class.is-placeholder]="!selectedOption()">
-      {{ selectedOption()?.label || placeholder() }}
-    </span>
-    <ng-icon name="lucideChevronsUpDown" />
-  </button>
+  <div class="input-shell" [class.is-open]="open()" [class.is-disabled]="disabled()">
+    <ng-icon name="lucideSearch" class="leading-icon" />
+
+    <input
+      #searchInput
+      hlmInput
+      class="search-input"
+      type="text"
+      autocomplete="off"
+      [disabled]="disabled()"
+      [value]="search()"
+      [placeholder]="placeholder()"
+      [attr.aria-expanded]="open()"
+      [attr.aria-label]="label()"
+      [attr.aria-autocomplete]="'list'"
+      (focus)="handleFocus()"
+      (input)="handleInput($any($event.target).value)"
+      (keydown)="onKeyDown($event)" />
+
+    @if (selectedOption() && !disabled()) {
+      <button
+        type="button"
+        class="clear-button"
+        aria-label="Limpiar selección"
+        (click)="clearSelection()">
+        ×
+      </button>
+    }
+
+    <ng-icon name="lucideChevronDown" class="trailing-icon" />
+  </div>
 
   @if (open()) {
     <div class="panel" role="listbox" [attr.aria-label]="label()">
-      <div class="search-box">
-        <ng-icon name="lucideSearch" />
-        <input
-          hlmInput
-          type="text"
-          [value]="search()"
-          [placeholder]="searchPlaceholder()"
-          (input)="updateSearch($any($event.target).value)" />
-      </div>
-
       <div class="options">
         @if (filteredOptions().length === 0) {
           <div class="empty">{{ emptyLabel() }}</div>
         } @else {
-          @for (option of filteredOptions(); track $index) {
+          @for (option of filteredOptions(); track option.value; let index = $index) {
             <button
               class="option"
               type="button"
               role="option"
               [attr.aria-selected]="isSelected(option.value, value())"
               [class.is-selected]="isSelected(option.value, value())"
+              [class.is-highlighted]="highlightedIndex() === index"
               (click)="select(option)">
               <span>{{ option.label }}</span>
               @if (isSelected(option.value, value())) {

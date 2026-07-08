@@ -1,0 +1,46 @@
+<div class="ac-wrap">
+  <label class="ac-label" [attr.for]="resolvedInputId">{{ label }}</label>
+  <input
+    #inputEl
+    class="ac-input"
+    type="text"
+    [id]="resolvedInputId"
+    [placeholder]="placeholder"
+    [ngModel]="inputValue"
+    [attr.aria-describedby]="describedBy || null"
+    [attr.aria-invalid]="invalid"
+    [attr.aria-label]="ariaLabel || null"
+    [attr.aria-required]="required"
+    [attr.aria-autocomplete]="'list'"
+    [attr.aria-expanded]="results.length > 0"
+    [attr.aria-controls]="results.length > 0 ? listId : null"
+    [attr.aria-activedescendant]="activeDescendant"
+    [attr.role]="'combobox'"
+    [required]="required"
+    (ngModelChange)="onInputChange($event)"
+    (keydown)="onInputKeyDown($event)"
+  />
+
+  @if (results.length) {
+    <ul class="ac-list" [id]="listId" role="listbox">
+      @for (item of results; track item.clave; let i = $index) {
+        <li
+          [id]="optionId(i)"
+          class="ac-item"
+          [class.active]="i === selectedIndex"
+          [attr.aria-selected]="i === selectedIndex"
+          role="option"
+          (click)="selectItem(item)"
+        >
+          <div class="ac-clave">{{ item.clave }}</div>
+          <div class="ac-desc">{{ item.descripcion }}</div>
+          <div class="ac-meta">{{ item.presentacion || item.unidadMedida || '-' }}</div>
+        </li>
+      }
+    </ul>
+  } @else if (searching) {
+    <div class="ac-hint">Buscando...</div>
+  } @else if ((inputValue || '').trim().length > 0 && (inputValue || '').trim().length < minChars) {
+    <div class="ac-hint">Escribe al menos {{ minChars }} caracteres</div>
+  }
+</div>

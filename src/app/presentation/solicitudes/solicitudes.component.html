@@ -1,351 +1,294 @@
-<section class="requests-page">
-  <header class="page-header">
-    <div>
-      <span class="eyebrow">GestiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n de Solicitudes</span>
-      <h1>Nueva captura de solicitud</h1>
-      <p>Elige el nivel de atenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n, selecciona la unidad y captura las claves con apoyo contextual.</p>
-    </div>
 
-    <button hlmBtn variant="outline" type="button" (click)="clear()">
-      <ng-icon name="lucideX" />
-      Reiniciar captura
-    </button>
-  </header>
+<div class="container mx-auto my-4 p-4">
+  <div class="flex flex-col items-center justify-between gap-2 mt-4 sm:flex-row">
+    <h1 class="text-2xl text-green-800 font-bold">
+      Solicitud de artículos {{ modoStandalone ? '' : ('para ' + (tituloUnidad$ | async)) }}
+    </h1>
 
-  <section hlmCard class="mode-card">
-    <div hlmCardContent class="mode-grid">
-      @for (item of modos; track item.key) {
-        <button type="button" class="mode-option" [class.is-active]="modo() === item.key" (click)="changeModo(item.key)">
-          <div class="mode-icon">
-            <ng-icon [name]="item.key === 'PRIMER_NIVEL' ? 'lucidePill' : 'lucideFlaskConical'" />
-          </div>
-          <div>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.description }}</p>
-          </div>
+    @if (canEditCpms) {
+        <button
+          class="self-start px-3 py-2 text-white text-sm bg-teal-700 cursor-pointer rounded hover:bg-teal-600 sm:self-auto"
+          title="Editar CPMs de esta unidad"
+          aria-label="Editar CPMs de esta unidad"
+          (click)="abrirCpmEditModal()">
+          <span aria-hidden="true">✏️</span> CPMs
         </button>
       }
+    <div class="justify-items-end">
+      <button
+        class="self-start px-3 py-2 text-white text-sm bg-emerald-700 cursor-pointer rounded hover:bg-emerald-500 sm:self-auto"
+        (click)="abrirCpmModal()">
+        Agregar por CPM
+      </button>
+      <button
+        class="self-start px-3 py-2 text-white text-sm bg-emerald-600 cursor-pointer rounded hover:bg-emerald-800 sm:self-auto"
+        (click)="abrirKitModal()">
+        Agregar por KIT
+      </button>
     </div>
-  </section>
+  </div>
 
-  <section hlmCard>
-    <div hlmCardContent class="details-grid">
-      <app-searchable-select
-        class="wide"
-        label="Unidad mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©dica"
-        placeholder="Selecciona una unidad"
-        searchPlaceholder="Buscar por nombre, CLUES o municipio"
-        [options]="unitOptions()"
-        [value]="selectedUnitValue()"
-        [disabled]="loadingUnits()"
-        (valueChange)="selectUnit($event)" />
+  <div class="relative mt-4 space-y-2">
 
-      <label class="form-field">
-        <span hlmLabel>Tipo de insumo</span>
-        <select formControlName="tipoInsumo">
-          <option value="">Selecciona</option>
-          @for (tipo of tiposInsumo; track tipo) {
-            <option [value]="tipo">{{ tipo }}</option>
-          }
-        </select>
-      </label>
+    <div class="relative">
+      <input #inputClave type="text" placeholder="Clave (mínimo 3 caracteres)" maxlength="15"
+        [(ngModel)]="claveInput" (input)="onClaveInput()" (keydown)="onInputKeyDown($event)"
+        class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
 
-      <label class="form-field">
-        <span hlmLabel>Tipo de pedido</span>
-        <select formControlName="tipoPedido">
-          <option value="Ordinario">Ordinario</option>
-          <option value="Extraordinario">Extraordinario</option>
-        </select>
-      </label>
-
-      <label class="form-field wide">
-        <span hlmLabel>Responsable de captura</span>
-        <input hlmInput formControlName="responsableCaptura" maxlength="150" (blur)="persist()" />
-      </label>
-
-      <label class="form-field">
-        <span hlmLabel>Fecha inicial</span>
-        <input hlmInput type="date" [value]="dateValue(datosForm.controls.fechaInicio.value)" (change)="setDate('fechaInicio', $any($event.target).value)" />
-      </label>
-
-      <label class="form-field">
-        <span hlmLabel>Fecha final</span>
-        <input hlmInput type="date" [value]="dateValue(datosForm.controls.fechaFin.value)" (change)="setDate('fechaFin', $any($event.target).value)" />
-      </label>
-    </div>
-  </section>
-
-  <section hlmCard class="capture-card">
-    <div hlmCardContent class="capture-content">
-      <div class="capture-toolbar">
-        <div>
-          <h2>Buscador de claves</h2>
-          <p>La bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda se enriquece con CPM, existencias por unidad, pertenencia a KIT y homologaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n configurada.</p>
-        </div>
-
-        <div class="toolbar-actions">
-          <button hlmBtn variant="outline" type="button" (click)="openCpmModal()" [disabled]="!selectedUnit() || loadingContext()">
-            <ng-icon name="lucideClipboardList" />
-            Agregar por CPM
-          </button>
-
-          <button hlmBtn variant="outline" type="button" (click)="openKitModal()" [disabled]="!selectedUnit() || loadingContext()">
-            <ng-icon name="lucideBoxes" />
-            Agregar por KIT
-          </button>
-        </div>
-      </div>
-
-      <div class="article-search">
-        <label class="search-field">
-          <span hlmLabel>Clave o descripciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n</span>
-          <div class="input-shell">
-            <ng-icon name="lucideSearch" />
-            <input hlmInput [formControl]="articuloSearch" placeholder="Escribe al menos tres caracteres" />
-            @if (searching() || loadingContext()) {
-              <hlm-spinner />
-            }
-          </div>
-        </label>
-
-        @if (resultados().length > 0) {
-          <div class="results-panel">
-            @for (item of resultados(); track item.clave) {
-              <button type="button" class="result-item" (click)="pickArticle(item)">
-                <div class="result-copy">
-                  <strong>{{ item.clave }}</strong>
-                  <p>{{ item.descripcion }}</p>
-                  <small>{{ item.presentacion || 'Sin presentaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n' }}</small>
-                  <small>{{ item.recomendacionAbasto }}</small>
+        @if (autocompleteResults.length) {
+          <ul
+            class="overflow-auto z-10 absolute top-12 left-0 right-0 max-h-52 bg-white shadow-md border rounded">
+            @for (item of autocompleteResults; track trackAutocompleteItem($index, item); let i = $index) {
+              <li #resultItem
+                [class.bg-gray-200]="i === selectedIndex" (click)="selectArticulo(item)"
+                class="p-2 cursor-pointer hover:bg-gray-200">
+                <div class="flex items-start justify-between gap-2">
+                  <!-- Izquierda: datos del artículo -->
+                  <div class="min-w-0">
+                    <div class="font-mono text-sm text-gray-800">
+                      {{ item.clave }}
+                    </div>
+                    <div class="text-sm text-gray-700">
+                      {{ (item.descripcion | slice:0:130) + (item.descripcion?.length > 130 ? ' [...]' : '')
+                      }}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {{ item.presentacion || item.unidadMedida }}
+                    </div>
+                    <!-- CPM (sin faltantes) -->
+                    <span class="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded"
+                      [ngClass]="(item._cpm ?? 0) > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600'">
+                      CPM: {{ item._cpm ?? 0 }}
+                    </span>
+                    @if (hasUnidadExistencias) {
+                      <span
+                        class="inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-semibold rounded"
+                        [ngClass]="(item._existUnidad ?? 0) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'">
+                        Exist. unidad: {{ item._existUnidad ?? 0 }}
+                      </span>
+                    }
+                    <!-- Badge sólo si forma parte del KIT -->
+                    <!-- @if (item._enKit) {
+                      <span
+                        class="inline-block mt-1 ml-1 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-800 bg-fuchsia-100 rounded">
+                        Incluido en KIT Rutas de las salud para esta unidad.
+                      </span>
+                    } -->
+                  </div>
+                  <!-- Derecha: existencias + CPM -->
+                  <div class="text-right shrink-0">
+                    <div class="flex flex-col items-end gap-1">
+                      <span class="inline-block px-2 py-0.5 text-xs rounded-full"
+                        [ngClass]="(item._azm ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'">
+                        Exist. AZM: {{ item._azm ?? 0 }}
+                      </span>
+                      <span class="inline-block px-2 py-0.5 text-xs rounded-full"
+                        [ngClass]="(item._aze ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'">
+                        Exist. AZE: {{ item._aze ?? 0 }}
+                      </span>
+                      <span class="inline-block px-2 py-0.5 text-xs rounded-full"
+                        [ngClass]="(item._azt ?? 0) > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'">
+                        Exist. AZT: {{ item._azt ?? 0 }}
+                      </span>
+                      <span class="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded"
+                        [ngClass]="(item._totalExistencias ?? 0) > 0 ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-200 text-gray-700'">
+                        Exist. Almacenes: {{ item._totalExistencias ?? 0 }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-
-                <div class="result-meta">
-                  <span class="meta-pill">CPM {{ item.cpm ?? 0 }}</span>
-                  <span class="meta-pill">Exist. unidad {{ item.existenciaUnidad ?? 0 }}</span>
-                  <span class="meta-pill">Estatal {{ item.existenciaEstatal ?? 0 }}</span>
-                  @if ((item.existenciaEstatal ?? 0) > 0) {
-                    <span class="meta-pill">AZM {{ item.existenciasAzm ?? 0 }} · AZE {{ item.existenciasAze ?? 0 }} · AZT {{ item.existenciasAzt ?? 0 }}</span>
-                  }
-                  @if (item.enKit) {
-                    <span class="meta-pill meta-pill--accent">En KIT</span>
-                  }
-                  @if ((item.homologos ?? 0) > 0) {
-                    <span class="meta-pill meta-pill--warn">{{ item.homologos }} homólogo(s)</span>
-                  }
-                  @if ((item.existenciaHomologosEstatal ?? 0) > 0) {
-                    <span class="meta-pill meta-pill--accent">Mejor homólogo {{ item.mejorHomologoClave }} · {{ item.mejorHomologoStock ?? 0 }} en {{ item.mejorHomologoAlmacen }}</span>
-                  }
-                </div>
-              </button>
+              </li>
             }
-          </div>
+            @if (moreResults && autocompleteResults.length < totalResults) {
+              <li class="p-2 text-sm text-gray-500">
+                Mostrando {{ autocompleteResults.length }} de {{totalResults}} resultados...
+              </li>
+            }
+          </ul>
         }
       </div>
 
-      <form class="article-form" [formGroup]="articuloForm" (ngSubmit)="addArticle()">
-        <div class="selected-article">
-          @if (selectedArticle(); as article) {
-            <div class="article-chip">
-              <div>
-                <strong>{{ article.clave }}</strong>
-                <p>{{ article.descripcion }}</p>
-              </div>
-              <button type="button" class="chip-close" (click)="selectedArticle.set(null); articuloSearch.setValue('')">
-                <ng-icon name="lucideX" />
-              </button>
-            </div>
-          } @else {
-            <div class="article-placeholder">
-              <ng-icon name="lucidePackageSearch" />
-              <span>Selecciona una clave desde la bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda</span>
-            </div>
+      <textarea placeholder="Descripción" maxlength="500" [(ngModel)]="descripcionInput" id="descripcionInput"
+      class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null"></textarea>
+
+      <input type="text" placeholder="Unidad de Medida" maxlength="50" [(ngModel)]="unidadInput" id="unidadInput"
+        class="p-2 w-full border rounded" [disabled]="modoEdicionIndex !== null" />
+
+        <input type="number"
+          placeholder="Cantidad" min="1" max="99999"
+          [(ngModel)]="cantidadInput" id="cantidadInput"
+          (keydown.enter)="onFormularioEnter($event)"
+          class="p-2 w-full border rounded"
+          [disabled]="modoEdicionIndex !== null" />
+
+        <button (click)="agregarArticulo()" [disabled]="!formularioValido || modoEdicionIndex !== null" [ngClass]="(formularioValido && modoEdicionIndex === null)
+              ? 'bg-green-800 hover:bg-green-900 text-white'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'" class="p-2 mt-2 w-full rounded">
+            Agregar +
+          </button>
+
+          @if (articulosSolicitados.length > 0) {
+            <button (click)="confirmarLimpiezaModal()"
+              class="p-2 mt-4 ml-2 text-green-900 bg-yellow-400 rounded hover:bg-yellow-500"
+              [disabled]="modoEdicionIndex !== null"
+              [ngClass]="modoEdicionIndex !== null ? 'opacity-50 cursor-not-allowed' : ''">
+              Limpiar captura
+            </button>
           }
-        </div>
 
-        <label class="form-field">
-          <span hlmLabel>Cantidad</span>
-          <input hlmInput type="number" min="1" max="99999" formControlName="cantidad" />
-        </label>
+          @let todosMayorACero = todosLosArticulosConCantidadMayorACero();
+          @let articulosPendientes = cantidadArticulosPendientes();
 
-        <label class="form-field">
-          <span hlmLabel>Observaciones</span>
-          <input hlmInput maxlength="300" formControlName="observaciones" />
-        </label>
+          @if (articulosSolicitados.length > 0) {
+            <div class="inline-flex flex-col gap-2 mt-4 ml-2 align-top">
+              <div class="flex flex-wrap items-center gap-2">
+                <button (click)="mostrarModalExportar()"
+                  class="p-2 text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-600"
+                  [disabled]="modoEdicionIndex !== null || !todosMayorACero"
+                  [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-80 cursor-not-allowed' : ''">
+                  Exportar Captura
+                </button>
 
-        <button hlmBtn type="submit" [disabled]="!selectedArticle()">
-          <ng-icon name="lucidePlus" />
-          Agregar
-        </button>
-      </form>
-    </div>
-  </section>
-
-  @if (articulos().length > 0) {
-    <section class="table-panel">
-      <div class="table-summary">
-        <span><strong>{{ articulos().length }}</strong> claves</span>
-        <span><strong>{{ totalPiezas() }}</strong> piezas</span>
-      </div>
-
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Clave</th>
-              <th>DescripciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n</th>
-              <th>PresentaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n</th>
-              <th>Cantidad</th>
-              <th>Observaciones</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of articulos(); track item.clave; let i = $index) {
-              <tr>
-                <td><strong>{{ item.clave }}</strong></td>
-                <td>{{ item.descripcion }}</td>
-                <td>{{ item.presentacion || 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â' }}</td>
-                <td><input class="inline-input quantity" type="number" min="1" max="99999" [value]="item.cantidad" (change)="updateQuantity(i, $any($event.target).value)" /></td>
-                <td><input class="inline-input notes" maxlength="300" [value]="item.observaciones" (change)="updateNotes(i, $any($event.target).value)" /></td>
-                <td>
-                  <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Eliminar artÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­culo" (click)="removeArticle(i)">
-                    <ng-icon name="lucideTrash2" />
+                @if (!todosMayorACero) {
+                  <button
+                    type="button"
+                    (click)="verArticulosPendientes()"
+                    class="p-2 text-sm font-semibold text-amber-800 bg-amber-50 border-amber-200 rounded border hover:bg-amber-100">
+                    Ver pendientes
                   </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-  } @else {
-    <section class="empty-state">
-      <ng-icon name="lucideWarehouse" />
-      <h2>AÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn no hay claves capturadas</h2>
-      <p>Selecciona una unidad y agrega artÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­culos manualmente o con apoyo de CPM/KIT.</p>
-    </section>
-  }
-
-  <div class="submit-row">
-    <button hlmBtn type="button" (click)="submit()" [disabled]="saving() || !articulos().length || datosForm.invalid">
-      @if (saving()) {
-        <hlm-spinner />
-      } @else {
-        <ng-icon name="lucideSend" />
-      }
-      Registrar solicitud
-    </button>
-  </div>
-
-  @if (cpmModalVisible()) {
-    <div class="modal-backdrop">
-      <section class="modal-card">
-        <header class="modal-header">
-          <div>
-            <h3>Agregar por CPM</h3>
-            <p>Sugerimos cantidades segÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn CPM y existencias ya capturadas para la unidad.</p>
-          </div>
-          <button type="button" class="chip-close" (click)="cpmModalVisible.set(false)"><ng-icon name="lucideX" /></button>
-        </header>
-
-        <div class="modal-controls">
-          <label class="form-field">
-            <span hlmLabel>Filtrar</span>
-            <input hlmInput [value]="cpmFilter()" (input)="cpmFilter.set($any($event.target).value)" placeholder="Clave o descripciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n" />
-          </label>
-          <label class="form-field">
-            <span hlmLabel>Meses de cobertura</span>
-            <input hlmInput type="number" min="1" max="12" [value]="mesesCoberturaCpm()" (input)="setMesesCoberturaCpm($any($event.target).value)" />
-          </label>
-        </div>
-
-        <div class="modal-list">
-          @for (row of filteredCpmRows(); track row.clave) {
-            <label class="modal-row">
-              <input type="checkbox" [checked]="selectedCpmClaves().has(row.clave)" (change)="toggleCpmSelection(row.clave)" />
-              <div>
-                <strong>{{ row.clave }}</strong>
-                <p>{{ row.descripcion }}</p>
-                <small>{{ row.recomendacionAbasto }}</small>
+                }
               </div>
-              <div class="modal-metrics">
-                <span>CPM {{ row.cpm }}</span>
-                <span>Exist. {{ row.existenciaUnidad }}</span>
-                <span>Estatal {{ row.existenciaEstatal }}</span>
-                <span>AZM {{ row.existenciasAzm }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· AZE {{ row.existenciasAze }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· AZT {{ row.existenciasAzt }}</span>
-                <span>Sugerido {{ row.cpm > 0 ? (row.cpm * mesesCoberturaCpm()) - row.existenciaUnidad > 0 ? (row.cpm * mesesCoberturaCpm()) - row.existenciaUnidad : 0 : 0 }}</span>
-              </div>
-            </label>
-          }
-        </div>
 
-        <footer class="modal-footer">
-          <button hlmBtn variant="ghost" type="button" (click)="cpmModalVisible.set(false)">Cancelar</button>
-          <button hlmBtn type="button" (click)="addSelectedCpm()">Agregar seleccionadas</button>
-        </footer>
-      </section>
-    </div>
-  }
-
-  @if (kitModalVisible()) {
-    <div class="modal-backdrop">
-      <section class="modal-card">
-        <header class="modal-header">
-          <div>
-            <h3>Agregar por KIT</h3>
-            <p>Filtra por KIT y revisa claves sugeridas con base en CPM y existencias de la unidad.</p>
-          </div>
-          <button type="button" class="chip-close" (click)="kitModalVisible.set(false)"><ng-icon name="lucideX" /></button>
-        </header>
-
-        <div class="modal-controls">
-          <label class="form-field">
-            <span hlmLabel>KIT</span>
-            <select [value]="kitSelected()" (change)="kitSelected.set($any($event.target).value)">
-              <option value="">Todos los KITs</option>
-              @for (kit of kitCodes(); track kit) {
-                <option [value]="kit">{{ kit }}</option>
+              @if (modoEdicionIndex !== null) {
+                <p class="max-w-md text-xs text-amber-800">
+                  Guarda o cancela la edición actual para habilitar la exportación.
+                </p>
+              } @else if (!todosMayorACero) {
+                <p class="max-w-md text-xs text-amber-800">
+                  No puedes exportar todavía: {{ articulosPendientes }} clave(s) tienen cantidad pendiente o en cero.
+                </p>
               }
-            </select>
-          </label>
-
-          <label class="form-field">
-            <span hlmLabel>Filtrar</span>
-            <input hlmInput [value]="kitFilter()" (input)="kitFilter.set($any($event.target).value)" placeholder="Clave o descripciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n" />
-          </label>
-
-          <label class="form-field">
-            <span hlmLabel>Meses de cobertura</span>
-            <input hlmInput type="number" min="1" max="12" [value]="mesesCoberturaKit()" (input)="setMesesCoberturaKit($any($event.target).value)" />
-          </label>
-        </div>
-
-        <div class="modal-list">
-          @for (row of filteredKitRows(); track row.clave) {
-            <label class="modal-row">
-              <input type="checkbox" [checked]="selectedKitClaves().has(row.clave)" (change)="toggleKitSelection(row.clave)" />
-              <div>
-                <strong>{{ row.clave }}</strong>
-                <p>{{ row.descripcion }}</p>
-                <small>{{ row.kits.join(', ') }}</small>
-                <small>{{ row.recomendacionAbasto }}</small>
-              </div>
-              <div class="modal-metrics">
-                <span>CPM {{ row.cpm }}</span>
-                <span>Exist. {{ row.existenciaUnidad }}</span>
-                <span>Estatal {{ row.existenciaEstatal }}</span>
-                <span>AZM {{ row.existenciasAzm }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· AZE {{ row.existenciasAze }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· AZT {{ row.existenciasAzt }}</span>
-                <span>Sugerido {{ row.cpm > 0 ? (row.cpm * mesesCoberturaKit()) - row.existenciaUnidad > 0 ? (row.cpm * mesesCoberturaKit()) - row.existenciaUnidad : 0 : 0 }}</span>
-              </div>
-            </label>
+            </div>
           }
+          <input title="archivo" type="file" #fileInput accept=".xlsx,.xls,.csv" class="hidden" (change)="manejarArchivoPrecarga($event)">
+          <button class="p-2 mt-4 ml-2 text-white align-self-end bg-green-800 rounded hover:bg-green-900 float-right"
+            (click)="buscarArchivo(fileInput)">
+            Importar Precarga
+          </button>
+        </div>
+        <div class="mt-4 p-2 border rounded" [hidden]="!articulosSolicitados || articulosSolicitados.length===0">
+          <app-tabla-articulos [articulosSolicitados]="articulosSolicitados" [modoEdicionIndex]="modoEdicionIndex"
+            [cluesimbActual]="cluesimbActual" [cantidadTemporal]="cantidadTemporal"
+            [capturaStats]="capturaStats" (cantidadTemporalChange)="cambiarCantidad($event)" [inventario]="inventarioDisponible"
+            (confirmar)="confirmarEdicion($event)" (cancelar)="cancelarEdicion()" (editar)="activarEdicion($event)"
+            (eliminar)="eliminarArticuloConConfirmacion($event)"
+            (CPMsPorUnidadActualizado)="actualizarCPMsPorUnidad($event)" />
+          </div>
+
+          @if (articulosSolicitados.length > 0) {
+            <div class="inline-flex flex-col gap-2 mt-4 ml-2 align-top">
+              <div class="flex flex-wrap items-center gap-2">
+                <button (click)="mostrarModalExportar()"
+                  class="p-2 text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-600"
+                  [disabled]="modoEdicionIndex !== null || !todosMayorACero"
+                  [ngClass]="modoEdicionIndex !== null || !todosMayorACero ? 'opacity-80 cursor-not-allowed' : ''">
+                  Exportar Captura
+                </button>
+
+                @if (!todosMayorACero) {
+                  <button
+                    type="button"
+                    (click)="verArticulosPendientes()"
+                    class="p-2 text-sm font-semibold text-amber-800 bg-amber-50 border-amber-200 rounded border hover:bg-amber-100">
+                    Ver pendientes
+                  </button>
+                }
+              </div>
+
+              @if (modoEdicionIndex !== null) {
+                <p class="max-w-md text-xs text-amber-800">
+                  Guarda o cancela la edición actual para habilitar la exportación.
+                </p>
+              } @else if (!todosMayorACero) {
+                <p class="max-w-md text-xs text-amber-800">
+                  No puedes exportar todavía: {{ articulosPendientes }} clave(s) tienen cantidad pendiente o en cero.
+                </p>
+              }
+            </div>
+          }
+
         </div>
 
-        <footer class="modal-footer">
-          <button hlmBtn variant="ghost" type="button" (click)="kitModalVisible.set(false)">Cancelar</button>
-          <button hlmBtn type="button" (click)="addSelectedKit()">Agregar seleccionadas</button>
-        </footer>
-      </section>
-    </div>
-  }
-</section>
+        <!-- Modal reutilizable con Tailwind -->
+        @if (modalVisible) {
+          <app-confirmacion-modal [titulo]="modalTitulo" [mensaje]="modalMensaje"
+            [textoCancelar]="modalCancelarTexto" [textoConfirmar]="modalConfirmarTexto" [soloInfo]="modalSoloInfo"
+            (confirmar)="modalAceptar()" (cancelar)="cerrarModal()" />
+        }
+
+        <!-- ✨ FLUJO 1: Modal de Sugerencia de Homólogo para Agregar Manual -->
+        @if (homologoModalVisible && homologoModalData) {
+          <app-homologo-sugerencia-modal
+            [topCandidates]="homologoModalData.sugerencias"
+            [originalClave]="homologoModalData.clave"
+            [originalCantidad]="homologoModalData.cantidad"
+            [originalDescripcion]="descripcionInput"
+            [inventarioDisponible]="homologoModalData.inventarioDisponible"
+            (reemplazar)="onReemplazarHomologo($event)"
+            (mantener)="onMantenerOriginal()"
+            (noSugerirMas)="agregarAListaNegra(homologoModalData!.clave)"
+            (close)="homologoModalVisible = false">
+          </app-homologo-sugerencia-modal>
+        }
+
+        <!-- ✨ FLUJO 2: Modal de Resumen de Importación -->
+        @if (importResumenHomologosVisible && articulosConHomologos.length > 0) {
+          <app-homologo-resumen-importacion
+            [sugerencias]="articulosConHomologos"
+            [totalImportados]="homologoResumenTotalImportados"
+            [inventarioDisponible]="inventarioDisponible"
+            [existingClaves]="existingClavesList"
+            [origen]="homologoResumenOrigen"
+            (reemplazarTodos)="onReemplazarMultiplesDesdeResumen($event)"
+            (ignorar)="importResumenHomologosVisible = false"
+            (close)="importResumenHomologosVisible = false">
+          </app-homologo-resumen-importacion>
+        }
+
+        <!-- Modal para nombrar archivo -->
+        @if (modalPedirNombreArchivo) {
+          <app-nombrar-archivo-modal [(nombreArchivo)]="nombreArchivo"
+            [(generarPrecarga)]="generarPrecarga" (aceptar)="confirmarExportacion()" (cancelarCerrar)="cerrarModalArchivo()" />
+        }
+
+
+        <br />
+        <br />
+        <br />
+        <br />
+
+
+        @if (kitModalVisible) {
+          <app-kit-modal [cluesimb]="cluesimbActual"
+            [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+            [inventarioDisponible]="inventarioDisponible" [existingClaves]="existingClavesList" [defaultQtyNoCpm]="1"
+            (addToSolicitud)="onKitAdd($event)" (close)="kitModalVisible = false">
+          </app-kit-modal>
+        }
+
+        @if (cpmModalVisible) {
+          <app-cpm-modal [cluesimb]="cluesimbActual" [inventarioDisponible]="inventarioDisponible"
+            [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+            [existingClaves]="existingClavesList" (addToSolicitud)="onKitAdd($event)"
+            (close)="cpmModalVisible=false">
+          </app-cpm-modal>
+        }
+
+        @if (cpmEditModalVisible()) {
+          <app-cpm-edit-modal [cluesimb]="cluesimbActual"
+            [canEdit]="canEditCpms"
+            [tituloUnidad]="modoStandalone ? '' : (tituloUnidad$ | async) || ''" [mostrarUnidadEnTitulo]="!modoStandalone"
+            (updated)="onCpmEditUpdated()"
+            (close)="cpmEditModalVisible.set(false)">
+          </app-cpm-edit-modal>
+        }

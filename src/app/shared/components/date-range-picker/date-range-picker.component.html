@@ -1,0 +1,13 @@
+<fieldset class="range-picker">
+  <legend>{{ label }}</legend>
+
+  <label class="range-field">
+    <span>{{ startLabel }}</span>
+    <input type="date" [value]="startValue" (change)="startValueChange.emit($any($event.target).value)" />
+  </label>
+
+  <label class="range-field">
+    <span>{{ endLabel }}</span>
+    <input type="date" [value]="endValue" (change)="endValueChange.emit($any($event.target).value)" />
+  </label>
+</fieldset>
