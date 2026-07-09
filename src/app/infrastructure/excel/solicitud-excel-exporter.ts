@@ -162,14 +162,14 @@ export class SolicitudExcelExporter {
         }
         const buffer = await workbook.xlsx.writeBuffer();
         const base64 = await convertirBufferABase64(buffer);
-        const enProduccion = environment;
+        const enProduccion = environment.production;
 
         datosClues = datosCluesStr && !standalone
             ? (JSON.parse(datosCluesStr) as DatosClues)
             : null;
 
         if (enProduccion) {
-            await fetch(environment + '/api/historial', {
+            await fetch(environment.apiBaseUrl + '/api/historial', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

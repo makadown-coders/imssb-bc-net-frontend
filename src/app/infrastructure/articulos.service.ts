@@ -9,7 +9,7 @@ import { Articulo, ArticuloSolicitud } from '../models/articulo-solicitud';
   providedIn: 'root'
 })
 export class ArticulosService {
-  private apiUrl = `${environment}/api/articulos`;
+  private apiUrl = `${environment.apiBaseUrl}/api/articulos`;
 
   /** Por deprecar ahora se jalaria por postgres */
   private articulosPrimerNivelSubject = new BehaviorSubject<Articulo[]>([]);
@@ -162,7 +162,7 @@ export class ArticulosService {
           this._articulosMapaCache = mapa;
           return mapa;
         }),
-        shareReplay(1) // 👈 Comparte la ejecución entre múltiples suscriptores
+        shareReplay(1) // ðŸ‘ˆ Comparte la ejecuciÃ³n entre mÃºltiples suscriptores
       );
     }
 
@@ -180,7 +180,7 @@ export class ArticulosService {
       this._articulosSolicitudMapaCacheKey = key;
       this._articulosSolicitudMapaCache$ = this.http
         .get<{ resultados: ArticuloSolicitud[]; total: number }>(
-          `${this}/api/by-cluesimb-cpm?cluesimb=${encodeURIComponent(key)}`
+          `${this.apiUrl}/by-cluesimb-cpm?cluesimb=${encodeURIComponent(key)}`
         )
         .pipe(
           map(arr => {
@@ -220,7 +220,7 @@ export class ArticulosService {
           this._articulosMapaCache = mapa;
           return mapa;
         }),
-        shareReplay(1) // 👈 Comparte la ejecución entre múltiples suscriptores
+        shareReplay(1) // ðŸ‘ˆ Comparte la ejecuciÃ³n entre mÃºltiples suscriptores
       );
     }
 

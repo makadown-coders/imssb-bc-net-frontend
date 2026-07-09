@@ -1,7 +1,7 @@
 // src/app/services/existencias-temp.service.ts
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
+import { APP_CONFIG, AppConfig } from '../core/config/app-config';
 import { map, Observable, of, tap } from 'rxjs';
 
 export type Fuente = 'SAS' | 'SALUS' | 'SALUS_INDICADORES';
@@ -24,11 +24,16 @@ interface ExistUnidadResp { rows: ExistUnidadRow[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ExistenciasTempService {
-  private http = inject(HttpClient);
-  private baseUrl = `${environment}/api/existencias-temp`;
+  private readonly http = inject(HttpClient);
+  private readonly config = inject<AppConfig>(APP_CONFIG);
+  private readonly baseUrl = this.url('/api/existencias-temp');
 
   // cache diario por unidad (memoria)
   private cache = new Map<string, { ts: number; rows: ExistUnidadRow[] }>();
+
+  private url(path: string): string {
+    return `${this.config.apiBaseUrl}${path}`;
+  }
 
   init(reset = true) {
     return this.http.post<{ ok: true }>(`${this.baseUrl}/init?reset=${reset}`, {});
@@ -40,9 +45,9 @@ export class ExistenciasTempService {
 
   /**
    * Devuelve la existencia total por clave_cnis de la unidad con CLUES IMB
-   * dado, o vacío si no hay clave. La respuesta se almacena en cache (memoria)
+   * dado, o vacÃ­o si no hay clave. La respuesta se almacena en cache (memoria)
    * por unidad y se devuelve directo en caso de que el request sea del mismo
-   * día (se asume que no cambia en un día). Se puede forzar la recarga pasando
+   * dÃ­a (se asume que no cambia en un dÃ­a). Se puede forzar la recarga pasando
    * { force: true } en el segundo par metro.
    * @param cluesimb CLUES IMB de la unidad
    * @param opts Opciones extras; si { force: true } se fuerza la recarga

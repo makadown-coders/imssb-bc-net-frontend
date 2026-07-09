@@ -9,7 +9,7 @@ import { UnidadAllow } from '../models/UnidadAllow';
 @Injectable({ providedIn: 'root' })
 export class FeatureFlagsService {
     private http = inject(HttpClient);
-    private base = environment + '/api/solicitudes-config';
+    private base = environment.apiBaseUrl + '/api/solicitudes-config';
 
     async getEffective(params: { cluesimb?: string; nivel?: Nivel }): Promise<EffectiveFlags> {
         let httpParams = new HttpParams();

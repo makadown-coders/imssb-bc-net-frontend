@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { concatAll, finalize, map, of } from 'rxjs';
 import { NgFastToastComponent } from 'ng-fast-toast';
-import { CapturaCluesComponent } from '../../../features/captura-clues/captura-clues.component';
+import { CapturaCluesComponent } from '../../../shared/captura-clues/captura-clues.component';
 import { InventarioService } from '../../../infrastructure/inventario/inventario.service';
 import { StorageSolicitudService } from '../../../infrastructure/storage-solicitud.service';
 import { Unidadv2 } from '../../../models';

@@ -25,7 +25,7 @@ export class SolicitudesMovimientosService {
     if (params.tipo) p = p.set('tipo', params.tipo);
 
     return await firstValueFrom(
-      this.http.get<MovimientoRow[]>(`${environment}/api/solicitudes/movimientos`, { params: p })
+      this.http.get<MovimientoRow[]>(`${environment.apiBaseUrl}/api/solicitudes/movimientos`, { params: p })
     );
   }
 
@@ -46,7 +46,7 @@ export class SolicitudesMovimientosService {
 
     return await firstValueFrom(
       this.http.get<MovimientoResumenRow[]>(
-        `${environment}/api/solicitudes/movimientos/resumen`,
+        `${environment.apiBaseUrl}/api/solicitudes/movimientos/resumen`,
         { params: p }
       )
     );

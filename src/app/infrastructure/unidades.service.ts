@@ -2,24 +2,25 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable, shareReplay } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { APP_CONFIG, AppConfig } from '../core/config/app-config';
 import { Unidad, Unidadv2, UnidadFromApi, UnidadExistente } from '../models/articulo-solicitud';
 import { UnidadMedica } from '../models';
 
 
 @Injectable({ providedIn: 'root' })
 export class UnidadesService {
-  private http = inject(HttpClient);
-  private apiUrl = `${environment}/api/unidades`;
+  private readonly http = inject(HttpClient);
+  private readonly config = inject<AppConfig>(APP_CONFIG);
+  private readonly apiUrl = this.url('/api/unidades');
 
-  // ⬇️ corrige el tipo del cache: era Unidad[], pero realmente cargas Unidadv2[]
+  // â¬‡ï¸ corrige el tipo del cache: era Unidad[], pero realmente cargas Unidadv2[]
   private unidadesSubject = new BehaviorSubject<Unidadv2[]>([]);
   public unidades$: Observable<Unidadv2[]> = this.unidadesSubject.asObservable();
 
   private primerNivel$?: Observable<UnidadExistente[]>;
-  private todosLosNiveles$?: Observable<UnidadExistente[]>
+  private todosLosNiveles$?: Observable<UnidadExistente[]>;
 
-  // índices para búsquedas rápidas
+  // Ã­ndices para bÃºsquedas rÃ¡pidas
   private byCluesimb = new Map<string, Unidadv2>();
   private byCluessa = new Map<string, Unidadv2>();
   private byNombreNorm = new Map<string, Unidadv2>();
@@ -27,9 +28,13 @@ export class UnidadesService {
 
   // para kits
   private unidadesSignal = signal<UnidadMedica[]>([]);
-  unidadesAll = this.unidadesSignal.asReadonly();
+  readonly unidadesAll = this.unidadesSignal.asReadonly();
 
-  // utilidad de normalización de nombre (quita acentos, mayúsculas y espacios extra)
+  private url(path: string): string {
+    return `${this.config.apiBaseUrl}${path}`;
+  }
+
+  // utilidad de normalizaciÃ³n de nombre (quita acentos, mayÃºsculas y espacios extra)
   private normalizeName(s: string) {
     return (s || '')
       .toLowerCase()
@@ -38,7 +43,7 @@ export class UnidadesService {
       .trim();
   }
 
-  /** Carga (o recarga) desde backend y construye los índices */
+  /** Carga (o recarga) desde backend y construye los Ã­ndices */
   load(): Observable<Unidadv2[]> {
     return this.http.get<UnidadFromApi[]>(this.apiUrl).pipe(
       map(rows => (rows ?? []).map(r => {
@@ -68,7 +73,7 @@ export class UnidadesService {
         return u;
       })),
       map((unidades: Unidadv2[]) => {
-        // reconstruir índices
+        // reconstruir Ã­ndices
         this.byCluesimb.clear();
         this.byNombreNorm.clear();
         this.byAliasSasNorm.clear();
@@ -101,7 +106,7 @@ export class UnidadesService {
       });
   }
 
-  /** Síncrono sobre el caché (útil para autocomplete) */
+  /** SÃ­ncrono sobre el cachÃ© (Ãºtil para autocomplete) */
   searchLocal(term: string, opts: { primerNivel: boolean; limit?: number } = { primerNivel: true }): Unidadv2[] {
     const q = this.normalizeName(term);
     if (!q) return [];
@@ -144,7 +149,7 @@ export class UnidadesService {
     return this.byCluesimb.get(cluesimb.trim().toUpperCase());
   }
 
-  /** Busca por nombre “normalizado” (útil cuando inventario trae 'almacen' o 'unidad' como texto) */
+  /** Busca por nombre â€œnormalizadoâ€ (Ãºtil cuando inventario trae 'almacen' o 'unidad' como texto) */
   findByNombre(nombre?: string): Unidad | undefined {
     if (!nombre) return undefined;
     const norm = this.normalizeName(nombre);
@@ -176,7 +181,7 @@ export class UnidadesService {
   }
 
   /**
-   * Devuelve una lista de unidades de primer nivel (CLUES IMB) que estén
+   * Devuelve una lista de unidades de primer nivel (CLUES IMB) que estÃ©n
    * en la base de datos. La respuesta se almacena en cache para evitar
    * peticiones innecesarias a la API.
    *
@@ -186,7 +191,7 @@ export class UnidadesService {
     if (this.primerNivel$) return this.primerNivel$;
 
     this.primerNivel$ = this.http
-      .get<UnidadExistente[]>(`${this}/api/primer-nivel`,
+      .get<UnidadExistente[]>(`${this.apiUrl}/primer-nivel`,
         { headers: { 'X-Skip-Loader': '1' } })
       .pipe(
         shareReplay(1)
@@ -196,7 +201,7 @@ export class UnidadesService {
   }
 
   /**
-   * Devuelve una lista de unidades de TODOS! los niveles (CLUES IMB) que estén
+   * Devuelve una lista de unidades de TODOS! los niveles (CLUES IMB) que estÃ©n
    * en la base de datos. La respuesta se almacena en cache para evitar
    * peticiones innecesarias a la API.
    *
@@ -206,7 +211,7 @@ export class UnidadesService {
     if (this.todosLosNiveles$) return this.todosLosNiveles$;
 
     this.todosLosNiveles$ = this.http
-      .get<UnidadExistente[]>(`${this}/api/todos-niveles`,
+      .get<UnidadExistente[]>(`${this.apiUrl}/todos-niveles`,
         { headers: { 'X-Skip-Loader': '1' } })
       .pipe(
         shareReplay(1)

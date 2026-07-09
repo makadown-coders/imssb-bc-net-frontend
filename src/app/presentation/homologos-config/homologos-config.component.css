@@ -1,0 +1,340 @@
+:host {
+  display: block;
+  min-height: 100%;
+  background: #f8fafc;
+}
+
+.page-shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.toolbar,
+.table-head,
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hero {
+  align-items: flex-start;
+  padding: 1.4rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0f172a, #115e59);
+  color: #fff;
+}
+
+.eyebrow,
+.search-label,
+.page-size span,
+.summary-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.hero h1,
+.table-head h2 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.hero h1 {
+  color: #fff;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.hero-copy,
+.table-head p,
+.table-count,
+.pagination-copy,
+.summary-card small {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+}
+.card,
+.status-banner,
+.table-wrap,
+.state-panel {
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.primary-cta,
+.secondary-btn,
+.danger-btn,
+.page-btn,
+.clear-search {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.danger-btn {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #b91c1c;
+}
+
+.compact {
+  padding: 0.45rem 0.75rem;
+}
+
+.toolbar {
+  align-items: end;
+  padding: 1rem 1.1rem;
+}
+
+.search-block,
+.page-size,
+.summary-card {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.search-block {
+  flex: 1;
+}
+
+.search-input-wrap,
+.toolbar-actions,
+.row-actions,
+.pagination-controls {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.toolbar-actions {
+  align-items: end;
+}
+
+.page-size {
+  min-width: 150px;
+}
+
+.search-input,
+.page-size-select {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+
+.status-banner {
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+}
+
+.status-ok {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.status-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  padding: 1rem 1.1rem;
+}
+
+.summary-card strong {
+  color: #0f172a;
+  font-size: 1.7rem;
+}
+
+.listing-card {
+  padding: 1rem 1.1rem;
+}
+
+.table-head {
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.table-count {
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.state-panel {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.state-panel h3,
+.state-panel p {
+  margin: 0;
+}
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid #cbd5e1;
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.85rem 0.95rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sort-btn {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sort-indicator {
+  color: #0f766e;
+  min-width: 0.8rem;
+}
+
+.pill {
+  display: inline-flex;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #155e75;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.pill.alt {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.mono-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.pagination {
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.pagination-controls {
+  flex-wrap: wrap;
+}
+
+.page-btn.is-active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+.primary-cta:focus-visible,
+.secondary-btn:focus-visible,
+.danger-btn:focus-visible,
+.page-btn:focus-visible,
+.clear-search:focus-visible,
+.sort-btn:focus-visible,
+.search-input:focus-visible,
+.page-size-select:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.24);
+  outline-offset: 2px;
+}
+
+.primary-cta:disabled,
+.secondary-btn:disabled,
+.danger-btn:disabled,
+.page-btn:disabled,
+.clear-search:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 960px) {
+  .hero,
+  .toolbar,
+  .table-head,
+  .pagination,
+  .search-input-wrap {
+    flex-direction: column;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-cta,
+  .toolbar-actions,
+  .page-size,
+  .clear-search,
+  .pagination-controls {
+    width: 100%;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 0.85rem;
+  }
+}

@@ -8,7 +8,7 @@ import { Observable, throwError } from "rxjs";
 @Injectable({ providedIn: 'root' })
 export class CpmEditorService {
   private http = inject(HttpClient);
-  private base = environment + '/api/cpms';
+  private base = environment.apiBaseUrl + '/api/cpms';
 
   /** Incluye cpm = 0 */
   getByUnidadAll(cluesimb?: string, cluessa?: string) {

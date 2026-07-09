@@ -73,8 +73,8 @@ export class SurveyModalComponent implements OnInit {
             return;
         }
         this.toast.success({
-            title: '¡Gracias!',
-            content: '👏 Tu opinión hace la diferencia.', duration: 5
+            title: 'Â¡Gracias!',
+            content: 'ðŸ‘ Tu opiniÃ³n hace la diferencia.', duration: 5
         });
 
         const v = this.form.value;
@@ -90,7 +90,7 @@ export class SurveyModalComponent implements OnInit {
             csat_1_5: Number(v.csat),
             comentario: ((v.comentario || '') as string)
                 .toString()
-                .replace(/\r\n/g, '\n')   // normaliza saltos de línea
+                .replace(/\r\n/g, '\n')   // normaliza saltos de lÃ­nea
                 .slice(0, 500),
             evento: meta?.event ?? 'export_success',
         } as SolicitudEncuestaPiloto;
@@ -110,7 +110,7 @@ export class SurveyModalComponent implements OnInit {
         this.svc.markResponded();
 
         // Enviar encuesta al backend (ajusta URL si es necesario)
-        await fetch(environment + '/api/historial/encuesta', {
+        await fetch(environment.apiBaseUrl + '/api/historial/encuesta', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

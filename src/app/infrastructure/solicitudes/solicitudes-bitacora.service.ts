@@ -8,7 +8,7 @@ import { ArticuloSolicitud } from '../../models/articulo-solicitud';
 export type BitacoraPayload = {
   cluesimb: string;
   tipoPedido: 'Ordinario' | 'Extraordinario';
-  tipoInsumo: string;          // ej "Medicamento - Material de Curación"
+  tipoInsumo: string;          // ej "Medicamento - Material de CuraciÃ³n"
   periodo?: string;
   articulos: Array<{ clave: string; cantidad: number }>;
 };
@@ -37,13 +37,13 @@ export class SolicitudesBitacoraService {
   private http = inject(HttpClient);
 
   async registrar(payload: BitacoraPayload): Promise<void> {
-    // No lances por errores de red: solo “best effort”
+    // No lances por errores de red: solo â€œbest effortâ€
     try {
       await firstValueFrom(
-        this.http.post(`${environment}/api/solicitudes/bitacora`, payload)
+        this.http.post(`${environment.apiBaseUrl}/api/solicitudes/bitacora`, payload)
       );
     } catch {
-      // Silencioso; opcional: console.warn('No se pudo registrar bitácora');
+      // Silencioso; opcional: console.warn('No se pudo registrar bitÃ¡cora');
     }
   }
 
@@ -53,13 +53,13 @@ export class SolicitudesBitacoraService {
       .set('hasta', hastaISO);
 
     return await firstValueFrom(
-      this.http.get<BitacoraHeader[]>(`${environment}/api/solicitudes/bitacora`, { params })
+      this.http.get<BitacoraHeader[]>(`${environment.apiBaseUrl}/api/solicitudes/bitacora`, { params })
     );
   }
 
   async detalle(id: string): Promise<BitacoraDetalle[]> {
     return await firstValueFrom(
-      this.http.get<BitacoraDetalle[]>(`${environment}/api/solicitudes/bitacora/${id}/detalle`)
+      this.http.get<BitacoraDetalle[]>(`${environment.apiBaseUrl}/api/solicitudes/bitacora/${id}/detalle`)
       .pipe(
         // normalizar las claves para que no jalen '060.
         map((detalles: BitacoraDetalle[]) => {
@@ -80,7 +80,7 @@ export class SolicitudesBitacoraService {
     if (claveSinPuntos.length === 12 &&
       prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
       claveSinPuntos.endsWith('00')) {
-      // Convertir 12 dígitos a 10, manteniendo formato con puntos
+      // Convertir 12 dÃ­gitos a 10, manteniendo formato con puntos
       const clave10 = claveSinPuntos.substring(0, 10);
       normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
     }

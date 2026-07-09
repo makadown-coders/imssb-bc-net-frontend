@@ -13,7 +13,7 @@ import {
   tap,
   withLatestFrom
 } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { APP_CONFIG, AppConfig } from '../core/config/app-config';
 import { CpmExpectedRow } from '../models/CpmExpectedRow';
 import { CpmApiResponse } from '../models/CpmApiResponse';
 import { CpmUnionRow } from '../models/CpmUnionRow';
@@ -22,20 +22,21 @@ import { FeatureFlagsService } from './feature-flags.service';
 
 @Injectable({ providedIn: 'root' })
 export class CpmService {
-  private http = inject(HttpClient);
-  private flags = inject(FeatureFlagsService);
-  private baseUrl = environment+ '/api'; // ej: http://localhost:3000/api
-  private expectedUrl = `${this.baseUrl}/cpms/expected-vs`;
-  private unitCpmUrl = `${this.baseUrl}/cpms/by-unidad`;
+  private readonly http = inject(HttpClient);
+  private readonly flags = inject(FeatureFlagsService);
+  private readonly config = inject<AppConfig>(APP_CONFIG);
+  private readonly baseUrl = this.url('/api');
+  private readonly expectedUrl = `${this.baseUrl}/cpms/expected-vs`;
+  private readonly unitCpmUrl = `${this.baseUrl}/cpms/by-unidad`;
 
   // =========================
   //   ESTADO "GLOBAL" LEGACY
   // =========================
-  // Unión final (KIT ∪ CPM>0) de la *última* unidad cargada explícitamente
+  // UniÃ³n final (KIT âˆª CPM>0) de la *Ãºltima* unidad cargada explÃ­citamente
   private unionSubject = new BehaviorSubject<CpmUnionRow[]>([]);
   public cpms$ = this.unionSubject.asObservable();
 
-  // índices auxiliares "globales" (última unidad)
+  // Ã­ndices auxiliares "globales" (Ãºltima unidad)
   // TODO: hacerlo private kitSet = new Set<string[]>();
   private kitSet = new Set<string>();               // claves en KIT (normalizadas)
   private cpmIndex = new Map<string, number>();     // clave -> cpm (normalizada)
@@ -43,7 +44,7 @@ export class CpmService {
   private importRestrictToKit$ = new BehaviorSubject<boolean>(false);
 
   // =========================
-  //   ESTADO POR UNIDAD 🆕
+  //   ESTADO POR UNIDAD ðŸ†•
   // =========================
   private unionsByUnit = new Map<string, BehaviorSubject<CpmUnionRow[]>>(); // cluesimb -> subject
   private inflightByUnit = new Map<string, Observable<CpmUnionRow[]>>();    // evitar duplicar fetches
@@ -57,6 +58,10 @@ export class CpmService {
   // =========================
   //   UTILS
   // =========================
+  private url(path: string): string {
+    return `${this.config.apiBaseUrl}${path}`;
+  }
+
   private storageKeys(cluesimb: string) {
     const k = cluesimb.trim().toUpperCase();
     return {
@@ -66,7 +71,7 @@ export class CpmService {
   }
 
   /**
-   * Limpia todo el storage relacionado con CPM (útil para debugging)
+   * Limpia todo el storage relacionado con CPM (Ãºtil para debugging)
    * todo lo que contenga "cpm:union:" o "cpm:ts:" para liberar espacio
    * en caso de QuotaExceededError.
    */
@@ -118,9 +123,9 @@ export class CpmService {
     try {
       tryWrite();
     } catch (err: any) {
-      // Cuota llena -> intentamos limpieza rápida
+      // Cuota llena -> intentamos limpieza rÃ¡pida
       if (err?.name === 'QuotaExceededError') {
-        this.evictOldCpmCache(); // 👈 agrega este helper abajo
+        this.evictOldCpmCache(); // ðŸ‘ˆ agrega este helper abajo
         try {
           tryWrite();
         } catch (err2) {
@@ -131,7 +136,7 @@ export class CpmService {
             tryWrite();
           } catch (err3) {
             // Tercer intento fallido
-            console.warn('[CPM] Sin espacio en localStorage, no se persistirá', cluesimb);
+            console.warn('[CPM] Sin espacio en localStorage, no se persistirÃ¡', cluesimb);
             // Importante: NO lanzar error. Solo no persistir.
           }
         }
@@ -139,7 +144,7 @@ export class CpmService {
       }
 
       // Otro error raro: no tires el flujo tampoco
-      console.warn('[CPM] persistUnion falló', cluesimb, err);
+      console.warn('[CPM] persistUnion fallÃ³', cluesimb, err);
     }
   }
 
@@ -165,7 +170,7 @@ export class CpmService {
         localStorage.removeItem(`cpm:union:${unit}`);
       }
     } catch {
-      // si storage está bloqueado o algo, no pasa nada
+      // si storage estÃ¡ bloqueado o algo, no pasa nada
     }
   }
 
@@ -180,7 +185,7 @@ export class CpmService {
     return !sameDay; // refresco diario
   }
 
-  private subjectForUnit(key: string): BehaviorSubject<CpmUnionRow[]> { // 🆕
+  private subjectForUnit(key: string): BehaviorSubject<CpmUnionRow[]> { // ðŸ†•
     let subj = this.unionsByUnit.get(key);
     if (!subj) {
       subj = new BehaviorSubject<CpmUnionRow[]>([]);
@@ -189,7 +194,7 @@ export class CpmService {
     return subj;
   }
 
-  private restrictFlagForUnit(key: string): BehaviorSubject<boolean> { // 🆕
+  private restrictFlagForUnit(key: string): BehaviorSubject<boolean> { // ðŸ†•
     let f = this.restrictByUnit.get(key);
     if (!f) {
       f = new BehaviorSubject<boolean>(false);
@@ -214,8 +219,8 @@ export class CpmService {
     }*/
 
   /**
-   * Carga por cluesimb, usa caché y consolida “expected-vs ∪ by-unidad”.
-   * Mantiene el *estado global* (última unidad activa).
+   * Carga por cluesimb, usa cachÃ© y consolida â€œexpected-vs âˆª by-unidadâ€.
+   * Mantiene el *estado global* (Ãºltima unidad activa).
    */
   ensureForCluesimb(cluesimb: string, opts?: { force?: boolean }): Observable<CpmUnionRow[]> {
     const key = cluesimb?.trim().toUpperCase();
@@ -227,7 +232,7 @@ export class CpmService {
       return of([]);
     }
 
-    // 🆕 ejecuta el flujo por-unidad y refleja en el global (compat)
+    // ðŸ†• ejecuta el flujo por-unidad y refleja en el global (compat)
     return this.ensureForUnit(key, opts).pipe(
       tap(union => {
         // copiar a estado global
@@ -246,14 +251,14 @@ export class CpmService {
   }
 
   // Helpers legacy (global)
-  getCpmForClave(clave: string, cluesimb?: string): number {                 // 🆕 acepta cluesimb opcional
+  getCpmForClave(clave: string, cluesimb?: string): number {                 // ðŸ†• acepta cluesimb opcional
     if (cluesimb) {
       const m = this.cpmIndexByUnit.get(cluesimb.trim().toUpperCase());
       return m?.get(this.normClave(clave)) ?? 0;
     }
     return this.cpmIndex.get(this.normClave(clave)) ?? 0;
   }
-  isClaveInKit(clave: string, cluesimb?: string): boolean {                  // 🆕 acepta cluesimb opcional
+  isClaveInKit(clave: string, cluesimb?: string): boolean {                  // ðŸ†• acepta cluesimb opcional
     if (cluesimb) {
       const s = this.kitSetByUnit.get(cluesimb.trim().toUpperCase());
       return s?.has(this.normClave(clave)) ?? false;
@@ -262,7 +267,7 @@ export class CpmService {
   }
 
   /**
-  * Salida derivada global (LEGACY) para la pantalla de importación:
+  * Salida derivada global (LEGACY) para la pantalla de importaciÃ³n:
   * - flag ON  -> solo claves del KIT (en_kit === true)
   * - flag OFF -> mismas filas que cpms$ (sin filtrar)
   */
@@ -272,7 +277,7 @@ export class CpmService {
     shareReplay(1)
   );
 
-  /** ¿Puedo usar esta clave con la unidad "global"? (LEGACY) */
+  /** Â¿Puedo usar esta clave con la unidad "global"? (LEGACY) */
   public canUseClave(clave: string): Observable<boolean> {
     const cn = this.normClave(clave);
     return this.importRestrictToKit$.pipe(
@@ -291,17 +296,17 @@ export class CpmService {
   }
 
   // =========================
-  //   API POR UNIDAD 🆕
+  //   API POR UNIDAD ðŸ†•
   // =========================
 
-  /** Stream de la unión (KIT ∪ CPM>0) *para una unidad* */
+  /** Stream de la uniÃ³n (KIT âˆª CPM>0) *para una unidad* */
   cpmsFor(cluesimb: string, opts?: { force?: boolean }): Observable<CpmUnionRow[]> {
     const key = (cluesimb || '').trim().toUpperCase();
     if (!key) return of([]);
     return this.ensureForUnit(key, opts);
   }
 
-  /** Versión “import” *por unidad* respetando flag de esa unidad */
+  /** VersiÃ³n â€œimportâ€ *por unidad* respetando flag de esa unidad */
   cpmsForImport(cluesimb: string): Observable<CpmUnionRow[]> {
     const key = (cluesimb || '').trim().toUpperCase();
     if (!key) return of([]);
@@ -318,7 +323,7 @@ export class CpmService {
     return set?.size ?? 0;
   }
 
-  /** ¿Puedo usar clave X para *esta* unidad? */
+  /** Â¿Puedo usar clave X para *esta* unidad? */
   public canUseClaveFor(clave: string, cluesimb: string): Observable<boolean> {
     const key = (cluesimb || '').trim().toUpperCase();
     const cn = this.normClave(clave);
@@ -332,16 +337,16 @@ export class CpmService {
   }
 
   // =========================
-  //   Núcleo de carga 🧠 (reutiliza lo tuyo)
+  //   NÃºcleo de carga ðŸ§  (reutiliza lo tuyo)
   // =========================
 
   /**
    * Carga por clave de unidad (semilla desde localStorage si ya fue cargado anteriormente)
-   * y devuelve la unión (KIT ∪ CPM) *para esa unidad*.
+   * y devuelve la uniÃ³n (KIT âˆª CPM) *para esa unidad*.
    * Si ya hay fetch en curso para esta unidad, reusa.
    * @param key CLUES IMB de la unidad
    * @param opts Opciones extras; si { force: true } se fuerza la recarga
-   * @returns Un Observable que emite la unión (KIT ∪ CPM) *para esa unidad*
+   * @returns Un Observable que emite la uniÃ³n (KIT âˆª CPM) *para esa unidad*
    */
   private ensureForUnit(key: string, opts?: { force?: boolean }): Observable<CpmUnionRow[]> {
     const subj = this.subjectForUnit(key);
@@ -349,10 +354,10 @@ export class CpmService {
     // Semilla desde localStorage
     const cached = this.hydrateUnion(key);
     if (!opts?.force && cached.length && !this.shouldRefresh(key)) {
-      // reconstruye índices por unidad y emite (si aún no está)
+      // reconstruye Ã­ndices por unidad y emite (si aÃºn no estÃ¡)
       if ((subj.value ?? []).length === 0) subj.next(cached);
       this.rebuildIndexesForUnit(key, cached);
-      // flag ya está en restrictByUnit (lazy)
+      // flag ya estÃ¡ en restrictByUnit (lazy)
       return subj.asObservable();
     }
 
@@ -435,12 +440,12 @@ export class CpmService {
     return Array.from(byClave.values()).sort((a, b) => a.clave_cnis.localeCompare(b.clave_cnis));
   }
 
-  private rebuildIndexesForUnit(cluesimb: string, union: CpmUnionRow[]) { // 🆕
+  private rebuildIndexesForUnit(cluesimb: string, union: CpmUnionRow[]) { // ðŸ†•
     const key = (cluesimb || '').trim().toUpperCase();
 
     const kitClaves = new Set<string>();
     const idx = new Map<string, number>();
-    const kits = new Set<string>(); // 🆕
+    const kits = new Set<string>(); // ðŸ†•
 
     for (const r of union) {
       const clave = this.normClave(r.clave_cnis);
@@ -456,7 +461,7 @@ export class CpmService {
 
     this.kitSetByUnit.set(key, kitClaves);
     this.cpmIndexByUnit.set(key, idx);
-    this.kitsByUnit.set(key, kits); // 🆕
+    this.kitsByUnit.set(key, kits); // ðŸ†•
   }
 
   getKitCodigosFor(cluesimb: string): string[] {

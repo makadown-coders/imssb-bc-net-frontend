@@ -20,7 +20,6 @@ import { ClaveGrupo, CPMS, hospitalesData, Inventario, InventarioFull, Inventari
 import { ExcelService } from '../excel.service';
 import { Existencias, StorageVariables } from '../../shared/storage-variables';
 import { CitaSlimByClaveLote, CitaSlimExistencia } from '../../models/cita-slim-inventario.model';
-import { environment } from '../../../environments/environment';
 import { TemporalExistenciaRow } from '../../models/temporal-existencia-row.model';
 import { UnidadesService } from '../unidades.service';
 
@@ -40,13 +39,13 @@ export class InventarioService {
   private readonly http = inject(HttpClient);
   private readonly config = inject<AppConfig>(APP_CONFIG);
   private url(path: string): string { return `${this.config.apiBaseUrl}${path}`; }
-  private apiUrl = this.url('/api/inventario'); // Ajusta si necesitas proxy
+  private readonly apiUrl = this.url('/api/inventario');
   private inventarioSubject = new BehaviorSubject<Inventario[]>([]);
   public inventario$: Observable<Inventario[]> = this.inventarioSubject.asObservable();
   private fechaService = inject(PeriodoFechasService);
   private excelService = inject(ExcelService);
   private unidadesService = inject(UnidadesService);
-  // ========================= CPMS Legacy, en vías de deprecación =========================
+  // ========================= CPMS Legacy, en vÃ­as de deprecaciÃ³n =========================
   // private cpmsSubject = new BehaviorSubject<CPMS[]>([]);
   // public cpms$: Observable<CPMS[]> = this.cpmsSubject.asObservable();
 
@@ -57,11 +56,11 @@ export class InventarioService {
   // private cpmsCluesActualSubject = new BehaviorSubject<CPMS[]>([]);
   // public cpmsCluesActual$: Observable<CPMS[]> = this.cpmsCluesActualSubject.asObservable();
 
-  // crear un booleano para avisar que se está cargando el CPMS
+  // crear un booleano para avisar que se estÃ¡ cargando el CPMS
   private cargandoCPMSBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoCPMS$ = this.cargandoCPMSBehaviorSubject.asObservable();
 
-  // crear un booleano para avisar que se está refrescando inventario y/o existencias
+  // crear un booleano para avisar que se estÃ¡ refrescando inventario y/o existencias
   private cargandoInventarioBehaviorSubject = new BehaviorSubject<boolean>(false);
   public cargandoInventario$ = this.cargandoInventarioBehaviorSubject.asObservable();
 
@@ -77,7 +76,7 @@ export class InventarioService {
 
   private slimInFlight$?: Observable<Map<string, CitaSlimByClaveLote[]>>;
   private slimLoadedAt = 0;
-  private readonly SLIM_TTL_MS = 30 * 60 * 1000; // 30 min (ajústalo)
+  private readonly SLIM_TTL_MS = 30 * 60 * 1000; // 30 min (ajÃºstalo)
   private readonly TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
 
   constructor() {
@@ -102,7 +101,7 @@ export class InventarioService {
   refrescarExistenciaAlmacenesDesdePostgres(skipLoader = true): void {
     this.cargandoInventarioBehaviorSubject.next(true);
 
-    const url = environment+ '/api/existencias-temp/almacenes-full';
+    const url = this.url('/api/existencias-temp/almacenes-full');
 
     this.http.get<{ ok: boolean; rows: TemporalExistenciaRow[] }>(
       url,
@@ -116,7 +115,7 @@ export class InventarioService {
           const i = new Inventario();
           i.clave = r.clave_cnis;
           i.partida = ''; // no viene, lo podemos enriquecer luego si hace falta
-          i.descripcion = ''; // se puede enriquecer con ArticulosService después
+          i.descripcion = ''; // se puede enriquecer con ArticulosService despuÃ©s
           i.disponible = r.existencia;
           i.almacen = (r.alias_sas ?? '').toUpperCase(); // o r.alias_sas / r.cluessa / lo que prefieras
           i.comprometidos = 0;
@@ -136,14 +135,14 @@ export class InventarioService {
           localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO, compressed);
           localStorage.setItem(StorageVariables.SOLICITUD_INVENTARIO_TS, new Date().toISOString());
         } catch {
-          console.warn('😱 InventarioService.refrescarDatosInventarioDesdePostgres() - localStorage lleno, omitiendo guardado');
+          console.warn('ðŸ˜± InventarioService.refrescarDatosInventarioDesdePostgres() - localStorage lleno, omitiendo guardado');
         }
 
         this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
         this.cargandoInventarioBehaviorSubject.next(false);
       },
       error: err => {
-        console.error('❌ InventarioService.refrescarDatosInventarioDesdePostgres() - Error al cargar datos:', err);
+        console.error('âŒ InventarioService.refrescarDatosInventarioDesdePostgres() - Error al cargar datos:', err);
         this.inventarioSubject.next([]);
         this.cargandoInventarioBehaviorSubject.next(false);
       }
@@ -170,14 +169,14 @@ export class InventarioService {
   }
 
   emitirInventario(inventario: Inventario[]) {
-    // console.info('📦 InventarioService.emitirInventario()', inventario);
+    // console.info('ðŸ“¦ InventarioService.emitirInventario()', inventario);
     this.inventarioSubject.next(inventario);
   }
 
   limpiarCPMS() {
     localStorage.removeItem(StorageVariables.SOLICITUD_CPMS);
     localStorage.removeItem(StorageVariables.SOLICITUD_CLAVEGRUPOS);
-    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS); // ⬅ limpiar timestamp
+    localStorage.removeItem(StorageVariables.SOLICITUD_CPMS_TS); // â¬… limpiar timestamp
     // this.cpmsSubject.next([]);
   }
 
@@ -187,7 +186,7 @@ export class InventarioService {
    * Obtiene existencias de los 3 almacenes AZM, AZT y AZE
    */
   refrescarDatosInventario(skipLoader = true): void {
-    //    console.info('🔄 InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
+    //    console.info('ðŸ”„ InventarioService.refrescarDatosInventario() - Actualizando datos de inventario temporal...');
     this.cargandoInventarioBehaviorSubject.next(true);
     this.limpiarInventario();
     const url = this.apiUrl;
@@ -195,19 +194,19 @@ export class InventarioService {
       headers: { 'X-Skip-Loader': '1' }
     } : {}).subscribe({
       next: (response: InventarioFull) => {
-        // console.log('🔄 InventarioService.refrescarDatosInventario() - response recibido');
+        // console.log('ðŸ”„ InventarioService.refrescarDatosInventario() - response recibido');
         const inventario = this.obtenerInventarioDeBase64(response.inventario);
         const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
         // Mantener el inventario de almacenes solo en memoria. Si el usuario hace F5,
         // la app volvera a solicitar /api/inventario.
-        //        console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+        //        console.info('âœ… InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
         this.inventarioSubject.next(inventarioNormalizado as Inventario[]);
         this.cargandoInventarioBehaviorSubject.next(false);
-        //        console.info('✅ InventarioService.refrescarDatosInventario() - FINALIZADO');
+        //        console.info('âœ… InventarioService.refrescarDatosInventario() - FINALIZADO');
       },
       error: (err) => {
-        console.error('❌ InventarioService.refrescarDatosInventario() - Error al cargar datos:', err);
+        console.error('âŒ InventarioService.refrescarDatosInventario() - Error al cargar datos:', err);
         this.cargandoInventarioBehaviorSubject.next(false);
       }
     });
@@ -227,7 +226,7 @@ export class InventarioService {
   refrescarDatosExistenciasDeLocalStorage(existencia: Existencias = Existencias.HGENS): void {
     const comprimido = localStorage.getItem(existencia);
     if (!comprimido) {
-      console.warn('😱 InventarioService.refrescarDatosExistencias() - No se encontraron datos de ' + existencia + ' en localStorage.')
+      console.warn('ðŸ˜± InventarioService.refrescarDatosExistencias() - No se encontraron datos de ' + existencia + ' en localStorage.')
       return;
     }
     const raw = LZString.decompress(comprimido);
@@ -237,23 +236,22 @@ export class InventarioService {
 
   /**
    * Refresca datos de existencias de una unidad (aplica solo segundo nivel)
-   * LEGACY: en vías de deprecación para usar un endpoint específico por unidad que ya regresa datos normalizados (sin necesidad de pasar por Power Automate ni normalizaciones extra).
-   * Nueva versión: refrescarDatosExistencias(), que ya no usa Power Automate ni ExcelService, sino que pega directo a un endpoint que regresa datos normalizados.
+   * LEGACY: en vÃ­as de deprecaciÃ³n para usar un endpoint especÃ­fico por unidad que ya regresa datos normalizados (sin necesidad de pasar por Power Automate ni normalizaciones extra).
+   * Nueva versiÃ³n: refrescarDatosExistencias(), que ya no usa Power Automate ni ExcelService, sino que pega directo a un endpoint que regresa datos normalizados.
    *
-   * En caso de emergencia, regresar a usar esta version. Ya que la nueva versión trae datos de
+   * En caso de emergencia, regresar a usar esta version. Ya que la nueva versiÃ³n trae datos de
    * existencias de farmacias de los hospitales
    *
    * @param existencia
    */
   refrescarDatosExistenciasLegacy(existencia: Existencias = Existencias.HGENS): void {
-    // console.info('🔄 InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
+    // console.info('ðŸ”„ InventarioService.refrescarDatosExistencias() - Actualizando existencias de ' + existencia + '...');
     // purgar todo el localStorage
     this.limpiarExistencias(existencia);
     // TODO: temporalmente usar cluesimb fija BCIMB000623 de san felipe para pruebas
-    const url = existencia === Existencias.HGSF ?
-      environment + '/api/existencias-temp/by-unidad-full?cluesimb=BCIMB000623'
-      :
-      this.apiUrl + '/' + existencia;
+    const url = existencia === Existencias.HGSF
+      ? this.url('/api/existencias-temp/by-unidad-full?cluesimb=BCIMB000623')
+      : `${this.apiUrl}/${existencia}`;
 
     if (existencia !== Existencias.HGSF) {
       this.http.get<InventarioFull>(url).subscribe({
@@ -264,7 +262,7 @@ export class InventarioService {
           this.serializarYComprimir(inventarioNormalizado, existencia);
         },
         error: (err) => {
-          console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+          console.error('âŒ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
           this.existenciasSubject.get(existencia)!.next([]);
           // this.cargandoInventarioBehaviorSubject.next(false);
         }
@@ -294,12 +292,12 @@ export class InventarioService {
           });
           const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
-          // console.log('🔁 InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
+          // console.log('ðŸ” InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
           // 1) Serializar y comprimir
           this.serializarYComprimir(inventarioNormalizado, existencia);
         },
         error: (err) => {
-          console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+          console.error('âŒ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
           this.existenciasSubject.get(existencia)!.next([]);
         }
       });
@@ -309,7 +307,7 @@ export class InventarioService {
 
 /**
  * Refresca datos de existencias de una unidad.
- * Nueva versión sin power automate.
+ * Nueva versiÃ³n sin power automate.
  * @param existencia Clave de la existencia a refrescar.
  */
   refrescarDatosExistencias(existencia: Existencias = Existencias.HGENS): void {
@@ -343,12 +341,12 @@ export class InventarioService {
         });
         const inventarioNormalizado = this.normalizarClavesInventario(inventario);
 
-        // console.log('🔁 InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
+        // console.log('ðŸ” InventarioService.refrescarDatosExistencias() HGSF - Serializando y comprimiendo ' + inventarioNormalizado.length + ' registros.' );
         // 1) Serializar y comprimir
         this.serializarYComprimir(inventarioNormalizado, existencia);
       },
       error: (err) => {
-        console.error('❌ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
+        console.error('âŒ InventarioService.refrescarDatosExistencias() ' + existencia + ' - Error al cargar datos:', err);
         this.existenciasSubject.get(existencia)!.next([]);
       }
     });
@@ -359,17 +357,17 @@ export class InventarioService {
     let urlRetorno = '';
     hospitalesData.forEach((hospital: UnidadExistente) => {
       if (hospital.key === existencia) {
-        urlRetorno = environment + '/api/existencias-temp/by-unidad-full?cluesimb=' + hospital.cluesimb;
+        urlRetorno = this.url(`/api/existencias-temp/by-unidad-full?cluesimb=${encodeURIComponent(hospital.cluesimb)}`);
       }
     });
     return urlRetorno;
   }
 
 
-  /*************  ✨ Windsurf Command ⭐  *************/
+  /*************  âœ¨ Windsurf Command â­  *************/
   /**
    * Serializa y comprime el inventario normalizado para guardarlo en localStorage.
-   * En caso de que localStorage esté lleno, se omite la guardado.
+   * En caso de que localStorage estÃ© lleno, se omite la guardado.
    * Se emite el inventario normalizado como observador.
    * @param inventarioNormalizado Inventario normalizado a serializar
    * @param existencia Existencias a la que se refiere el inventario
@@ -380,21 +378,21 @@ export class InventarioService {
     const compressed = LZString.compress(raw);
     try {
       localStorage.setItem(existencia, compressed);
-      // ⬇⏱ timestamp específico de esta existencia
+      // â¬‡â± timestamp especÃ­fico de esta existencia
       localStorage.setItem(`TS_${existencia}`, new Date().toISOString());
     } catch {
-      console.warn('😱 InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
+      console.warn('ðŸ˜± InventarioService.refrescarDatosInventario() - localStorage lleno, omitiendo guardado');
     }
     // 2) Emitir
-    //console.info('✅ InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
+    //console.info('âœ… InventarioService.refrescarDatosInventario() - Datos del inventario temporal actualizados.');
     this.existenciasSubject.get(existencia)!.next(inventarioNormalizado as Inventario[]);
     // this.cargandoInventarioBehaviorSubject.next(false);
-    //console.info('✅ InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
+    //console.info('âœ… InventarioService.refrescarDatosExistencias() - ' + existencia + ' FINALIZADO');
   }
 
   private obtenerInventarioDeBase64(base64: string): Inventario[] {
 
-    //console.info('🔁 Obteniendo info con Power Automate');
+    //console.info('ðŸ” Obteniendo info con Power Automate');
     let inventarioRetorno: Inventario[] = [];
     let fila: any = null;
     try {
@@ -403,7 +401,7 @@ export class InventarioService {
       const arrayBuffer = this.excelService.base64ToArrayBuffer(base64);
 
       const rows: InventarioRow[] = this.excelService.obtenerInventarioDeExcel(arrayBuffer);
-      //console.info('🔁 Procesando', rows.length, 'filas.');
+      //console.info('ðŸ” Procesando', rows.length, 'filas.');
 
       let headerLeido = false;
       for (const popo of rows) {
@@ -414,7 +412,7 @@ export class InventarioService {
         }
         const clave = fila[0];
         if (!clave || (clave + '').trim().length === 0) {
-          console.info('🔁 fin de archivo detectado. Finalizando obtención de datos', fila);
+          console.info('ðŸ” fin de archivo detectado. Finalizando obtenciÃ³n de datos', fila);
           break;
         }
         const partida = fila[1];
@@ -453,26 +451,26 @@ export class InventarioService {
         nuevoRegistro.fecha_entrada = fechaEntrada;
         inventarioRetorno.push(nuevoRegistro);
       }
-      //  console.info(`✅ Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
+      //  console.info(`âœ… Inventario cargado desde Power Automate. Total: ${inventarioRetorno.length} registros.`);
 
     } catch (err: any) {
-      console.error('❌ InventarioService.obtenerInventarioDeBase64() - Error al obtener de power automate:', err);
-      console.error('🔁 InventarioService.obtenerInventarioDeBase64() - Error procesando fila:', fila);
+      console.error('âŒ InventarioService.obtenerInventarioDeBase64() - Error al obtener de power automate:', err);
+      console.error('ðŸ” InventarioService.obtenerInventarioDeBase64() - Error procesando fila:', fila);
     }
 
     return inventarioRetorno;
   }
 
   private limpiarInventario() {
-    // console.info('🧹 Limpiando inventario...');
+    // console.info('ðŸ§¹ Limpiando inventario...');
     localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO);
-    localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO_TS); // ⬅ limpiar timestamp
+    localStorage.removeItem(StorageVariables.SOLICITUD_INVENTARIO_TS); // â¬… limpiar timestamp
     this.inventarioSubject.next([]);
   }
 
   private limpiarExistencias(existencia: Existencias) {
     localStorage.removeItem(existencia);
-    localStorage.removeItem(`TS_${existencia}`); // ⬅ limpiar timestamp
+    localStorage.removeItem(`TS_${existencia}`); // â¬… limpiar timestamp
   }
 
   private normalizarClavesInventario(inventario: Inventario[]): Inventario[] {
@@ -490,7 +488,7 @@ export class InventarioService {
     if (claveSinPuntos.length === 12 &&
       prefijos10.includes(claveSinPuntos.substring(0, 3)) &&
       claveSinPuntos.endsWith('00')) {
-      // Convertir 12 dígitos a 10, manteniendo formato con puntos
+      // Convertir 12 dÃ­gitos a 10, manteniendo formato con puntos
       const clave10 = claveSinPuntos.substring(0, 10);
       normalizado = `${clave10.substring(0, 3)}.${clave10.substring(3, 6)}.${clave10.substring(6, 10)}`;
     }
@@ -506,29 +504,29 @@ export class InventarioService {
   }
 
   ensureCitasSlim$(): Observable<Map<string, CitaSlimByClaveLote[]>> {
-    // 1) si el cache está fresco, regresa inmediato (sin pegarle al backend)
+    // 1) si el cache estÃ¡ fresco, regresa inmediato (sin pegarle al backend)
     const current = this._citasByClaveLote();
     if (current.size > 0 && this.isSlimFresh()) return of(current);
 
-    // 2) si ya hay una petición en vuelo, reusa la misma
+    // 2) si ya hay una peticiÃ³n en vuelo, reusa la misma
     if (this.slimInFlight$) return this.slimInFlight$;
 
-    // 3) si no hay, crea UNA y compártela
-    const url = environment + '/api/citas/slim-existencia';
+    // 3) si no hay, crea UNA y compÃ¡rtela
+    const url = this.url('/api/citas/slim-existencia');
 
-    // console.log('🚀 Cargando slim existencias desde backend...');
+    // console.log('ðŸš€ Cargando slim existencias desde backend...');
     this.slimInFlight$ = defer(() =>
       this.http.get<{ ok: boolean; rows: CitaSlimExistencia[] }>(url)
     ).pipe(
-      map((res: any) => {
-        // console.log('✅ Slim respuesta:', res.data);
-        return this.buildSlimMap(res.data.rows ?? []);
+      map((res: { ok: boolean; rows: CitaSlimExistencia[] }) => {
+        // console.log('âœ… Slim respuesta:', res.data);
+        return this.buildSlimMap(res.rows ?? []);
       }),
       tap(mp => {
         this._citasByClaveLote.set(mp);
         this.slimLoadedAt = Date.now();
       }),
-      // si falla, no revientes: deja cache como esté y suelta inFlight
+      // si falla, no revientes: deja cache como estÃ© y suelta inFlight
       catchError(err => {
         console.error('Error cargando slim inventario:', err);
         return of(this._citasByClaveLote());
@@ -545,7 +543,7 @@ export class InventarioService {
   /**
    * Convierte una lista de CitaSlimExistencia en un Map de clave-lote a CitaSlimByClaveLote[].
    *
-   * La clave del Map es una concatenación de la clave de la cita y el lote, separados por '__'.
+   * La clave del Map es una concatenaciÃ³n de la clave de la cita y el lote, separados por '__'.
    * El valor asociado a cada clave es un array de CitaSlimByClaveLote.
    * Cada CitaSlimByClaveLote tiene los campos precio, orden, fte y proveedor de la cita original.
    *
@@ -554,7 +552,7 @@ export class InventarioService {
    */
   private buildSlimMap(rows: CitaSlimExistencia[]): Map<string, CitaSlimByClaveLote[]> {
     const mp = new Map<string, CitaSlimByClaveLote[]>();
-    // console.log('🔍 buildSlimMap - procesando', rows.length, 'registros de citas slim');
+    // console.log('ðŸ” buildSlimMap - procesando', rows.length, 'registros de citas slim');
 
     for (const r of rows ?? []) {
       const clave = this.normalizarClave(r.clave_cnis);
@@ -577,7 +575,7 @@ export class InventarioService {
     return mp;
   }
 
-  /** Fuerza recargar desde el backend (para el botón Actualizar) */
+  /** Fuerza recargar desde el backend (para el botÃ³n Actualizar) */
   refreshCitasSlim() {
     this.slimLoadedAt = 0;
     this._citasByClaveLote.set(new Map());
@@ -595,7 +593,7 @@ export class InventarioService {
   /**
  * Inicializa existencias de UNA unidad:
  * - Emite lo que haya en localStorage (si existe)
- * - Si no hay datos o están vencidos → llama a refrescarDatosExistencias(existencia)
+ * - Si no hay datos o estÃ¡n vencidos â†’ llama a refrescarDatosExistencias(existencia)
  */
   initExistencia(existencia: Existencias): void {
     const comprimido = localStorage.getItem(existencia);
@@ -635,7 +633,7 @@ export class InventarioService {
       this.existenciasByCluesimb.delete(key);
     }
 
-    const url = environment + `/api/existencias-temp/by-unidad-full?cluesimb=${encodeURIComponent(key)}`;
+    const url = this.url(`/api/existencias-temp/by-unidad-full?cluesimb=${encodeURIComponent(key)}`);
 
     const req$ = this.http.get<{ rows: TemporalExistenciaRow[] }>(url, { headers: { 'X-Skip-Loader': '1' } }).pipe(
       map((response) => {
@@ -661,7 +659,7 @@ export class InventarioService {
         return invNorm;
       }),
       catchError((err) => {
-        console.error('❌ getExistenciasByCluesimb', key, err);
+        console.error('âŒ getExistenciasByCluesimb', key, err);
         return of([]);
       }),
       shareReplay(1)

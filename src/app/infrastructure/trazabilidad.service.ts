@@ -26,7 +26,7 @@ export class TrazabilidadService {
   obtenerPorClaveYClues(clave: string, cluesimb: string) {
     return firstValueFrom(
       this.http.get<MovimientoTrazabilidad[]>(
-        `${environment}/api/trazabilidad`,
+        `${environment.apiBaseUrl}/api/trazabilidad`,
         { params: new HttpParams().set('clave', clave).set('cluesimb', cluesimb) }
       )
     );
@@ -34,7 +34,7 @@ export class TrazabilidadService {
 
   getFactorConversion(clave: string) {
     return this.http.get<{ clave: string; en_dispensacion: boolean; cantidad_fc: number }>(
-      `${environment}/api/factores/${encodeURIComponent(clave)}`
+      `${environment.apiBaseUrl}/api/factores/${encodeURIComponent(clave)}`
     );
   }
 
@@ -57,7 +57,7 @@ export class TrazabilidadService {
       try {
         const params = new HttpParams().set('clave', clave).set('clues', cluesimb);
         let raw = await firstValueFrom(
-          this.http.get<RawFactor>(`${environment}/api/factores/factor`, { params })
+          this.http.get<RawFactor>(`${environment.apiBaseUrl}/api/factores/factor`, { params })
         );
 
         if (!raw) raw = { en_dispensacion: 0, cantidad_fc: 1 };
@@ -109,7 +109,7 @@ export class TrazabilidadService {
   private async cargarAllFactoresConversion() {
     try {
       const allFactores = await firstValueFrom(
-        this.http.get<FactoresResponse>(`${environment}/api/trazabilidad/all-factores-conversion-v2`)
+        this.http.get<FactoresResponse>(`${environment.apiBaseUrl}/api/trazabilidad/all-factores-conversion-v2`)
       );
 
       if (!allFactores.success || !Array.isArray(allFactores.data)) {

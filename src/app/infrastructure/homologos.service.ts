@@ -2,12 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { APP_CONFIG, AppConfig } from '../core/config/app-config';
 import { HomologoDTO } from '../models/homologos/HomologoDto';
 
 @Injectable({ providedIn: 'root' })
 export class HomologosService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
+  private readonly config = inject<AppConfig>(APP_CONFIG);
 
   // cache simple por fingerprint de claves
   private cache = new Map<string, Observable<Map<string, HomologoDTO[]>>>();
@@ -21,7 +22,7 @@ export class HomologosService {
     const cached = this.cache.get(fingerprint);
     if (cached) return cached;
 
-    const url = environment + `/api/homologos/batch`;
+    const url = this.url('/api/homologos/batch');
     const req$ = this.http.post<{ rows: HomologoDTO[] }>(url, { claves: uniq }, { headers: { 'X-Skip-Loader': '1' } }).pipe(
       map(resp => {
         const byClave = new Map<string, HomologoDTO[]>();
@@ -36,7 +37,7 @@ export class HomologosService {
         return byClave;
       }),
       catchError(err => {
-        console.error('❌ homologos.batch', err);
+        console.error('âŒ homologos.batch', err);
         return of(new Map());
       }),
       shareReplay(1)
@@ -54,7 +55,7 @@ export class HomologosService {
     const cached = this.cacheForward.get(fingerprint);
     if (cached) return cached;
 
-    const url = environment + `/api/homologos/batch-forward`;
+    const url = this.url('/api/homologos/batch-forward');
     const req$ = this.http.post<{ rows: HomologoDTO[] }>(url, { claves: uniq }, { headers: { 'X-Skip-Loader': '1' } }).pipe(
       map(resp => {
         const byClave = new Map<string, HomologoDTO[]>();
@@ -80,5 +81,9 @@ export class HomologosService {
 
     this.cacheForward.set(fingerprint, req$);
     return req$;
+  }
+
+  private url(path: string): string {
+    return `${this.config.apiBaseUrl}${path}`;
   }
 }

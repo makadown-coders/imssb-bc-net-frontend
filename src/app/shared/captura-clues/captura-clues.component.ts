@@ -5,12 +5,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideHospital, lucideStethoscope } from '@ng-icons/lucide';
-import { PeriodoPickerComponent } from '../../shared/periodo-picker/periodo-picker.component';
+import { PeriodoPickerComponent } from '../periodo-picker/periodo-picker.component';
 import { Unidadv2 } from '../../models/articulo-solicitud';
 import { PeriodoFechasService } from '../../infrastructure/periodo-fechas/periodo-fechas.service';
 import { StorageSolicitudService } from '../../infrastructure/storage-solicitud.service';
 import { UnidadesService } from '../../infrastructure/unidades.service';
-import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
+import { ModoCapturaSolicitud } from '../modo-captura-solicitud';
 
 @Component({
   selector: 'app-captura-clues',
@@ -22,8 +22,6 @@ import { ModoCapturaSolicitud } from '../../shared/modo-captura-solicitud';
   })]
 })
 export class CapturaCluesComponent implements OnInit, AfterViewInit {
-  readonly HospitalIcon = lucideHospital;
-  readonly StethoscopeIcon = lucideStethoscope;
 
   nombreHospital = '';
   tipoInsumo = '';

@@ -27,9 +27,11 @@ export class ShellComponent implements OnInit {
   readonly isMobile = signal(false);
   readonly isAbastoRoute = signal(this.router.url.startsWith('/solicitudes'));
   readonly isAdminTic = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC'); });
+  readonly isIBOnco = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'IB_ONCO'); });
+  readonly canAccessUnidadesMedicas = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'UNIDAD_MEDICA', 'ADMIN_TIC', 'COORDINACION', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
   readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'].some((role) => hasTokenRole(token, role)); });
 
-  constructor(readonly authStore: AuthStore) {}
+  constructor(readonly authStore: AuthStore) { }
 
   ngOnInit(): void {
     this.breakpointObserver.observe('(max-width: 900px)').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ matches }) => { this.isMobile.set(matches); this.mobileNavigationOpen.set(false); });
