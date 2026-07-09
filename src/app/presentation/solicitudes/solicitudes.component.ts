@@ -24,20 +24,20 @@ import { CpmEditModalComponent } from './cpm-edit-modal/cpm-edit-modal.component
 import { aplicarFactorConversion } from '../../models';
 import { HomologoSugerenciaModalComponent } from './homologo-sugerencia-modal/homologo-sugerencia-modal.component';
 import { HomologoResumenImportacionComponent } from './homologo-resumen-importacion/homologo-resumen-importacion.component';
-import { environment } from '../../../environments/environment';
 import { TablaArticulosComponent } from './tabla-articulos/tabla-articulos.component';
 import { ArticulosService } from '../../infrastructure/articulos.service';
 import { CpmEditorService } from '../../infrastructure/cpm-editor.service';
 import { CpmService } from '../../infrastructure/cpm.service';
-import { ExcelService } from '../../infrastructure/excel.service';
 import { ExistenciasTempService } from '../../infrastructure/existencias-temp.service';
 import { FeatureFlagsService } from '../../infrastructure/feature-flags.service';
-import { HomologosSolicitudService, MiniBalanceHomologoCand, SugerenciaHomologoItem } from '../../infrastructure/homologos-solicitud.service';
+import { MiniBalanceHomologoCand, SugerenciaHomologoItem } from '../../infrastructure/homologos-solicitud.service';
 import { InventarioService } from '../../infrastructure/inventario/inventario.service';
 import { StorageSolicitudService } from '../../infrastructure/storage-solicitud.service';
 import { SurveyService } from '../../infrastructure/survey.service';
 import { TrazabilidadService } from '../../infrastructure/trazabilidad.service';
-import { SolicitudesBitacoraService } from '../../infrastructure/solicitudes/solicitudes-bitacora.service';
+import { SolicitudesExportFacadeService } from './services/solicitudes-export-facade.service';
+import { SolicitudesHomologosFacadeService } from './services/solicitudes-homologos-facade.service';
+import { SolicitudesImportError, SolicitudesImportFacadeService } from './services/solicitudes-import-facade.service';
 
 
 @Component({
@@ -88,10 +88,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
   articulosService = inject(ArticulosService);
-  excelService = inject(ExcelService);
   toast = inject(NgFastToastService);
   trazabilidadService = inject(TrazabilidadService);
-  bitacoraService = inject(SolicitudesBitacoraService);
   cpmEditorService = inject(CpmEditorService);
 
   @ViewChildren('resultItem') resultItems!: QueryList<ElementRef>;
@@ -125,7 +123,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // dentro de la clase SolicitudesComponent
   // ============= Inyección de servicios =============
-  private homologosSolicitudService = inject(HomologosSolicitudService);
+  private solicitudesExportFacade = inject(SolicitudesExportFacadeService);
+  private solicitudesHomologosFacade = inject(SolicitudesHomologosFacadeService);
+  private solicitudesImportFacade = inject(SolicitudesImportFacadeService);
 
   // ============= FLUJO 1: Properties para Agregar Manual =============
   homologoModalVisible = false;
@@ -231,14 +231,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       this.rebuildExistingClaves();
     }
 
-    // â¬‡ï¸ (Robustez) si el usuario llega directo a esta ruta,
+    // (Robustez) si el usuario llega directo a esta ruta,
     // levanta CPM de la unidad guardada en localStorage.
     const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
     if (cluesStr) {
       this.datosClues = JSON.parse(cluesStr) as DatosClues;
       const cluesimb = this.datosClues?.hospital?.cluesimb || '';
       if (cluesimb) {
-        // no hace daño si Layout ya lo cargó: usa cachá del CpmService
+        // no hace daño si Layout ya lo cargó: usa caché del CpmService
         this.cpmService.ensureForCluesimb(cluesimb).subscribe();
         this.loadExistenciasUnidad(cluesimb);
       }
@@ -272,9 +272,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  // â¬‡ï¸ Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
+  // Adaptador de filas del endpoint a tu tipo CPMS (lo que use tu ExcelService)
   // Asumo CPMS = { clave: string; cpm: number }.
-  // Si tu interfaz CPMS tiene más campos, ajústalos aquÃ­.
+  // Si tu interfaz CPMS tiene más campos, ajústalos aquí.
   private mapCpmRowsToCPMS(rows: CpmRowLite[], cluesimbFallback?: string): CPMS[] {
     // Consolidamos por clave (si una clave aparece varias veces por distintos kits, tomamos el mayor CPM)
     const byClave = new Map<string, CPMS>();
@@ -293,7 +293,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         byClave.set(clave, {
           clave,
           cluesimb,
-          cantidad: cpmVal,   // ðŸ‘ˆ aquÃ­ â€˜cantidadâ€™ = CPM
+          cantidad: cpmVal,   // aquí 'cantidad' = CPM
         });
       }
     }
@@ -354,7 +354,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   buscarArticulosBackend(texto: string) {
-    // ðŸ”Œ Intenta con backend koyeb
+    // Intenta con backend Koyeb
     this.articulosService.buscarArticulos(texto).subscribe({
       next: (data) => {
         // this.autocompleteResults = data.resultados.sort((a, b) => a.clave.localeCompare(b.clave)) || [];
@@ -503,7 +503,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       observaciones: ''
     });
 
-    // âœ¨ FLUJO 1: NUEVO - Detectar homologos para este artículo
+    // FLUJO 1: NUEVO - Detectar homólogos para este artículo
     this.detectarYMostrarHomologoParaArticulo(clave, this.cantidadInput);
 
     this.storageSolicitudService
@@ -525,49 +525,34 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ============================================
-  // FLUJO 1: Mátodos para Agregar Manual
+  // FLUJO 1: Métodos para Agregar Manual
   // ============================================
 
   /**
    * Detecta homologos y muestra el modal si hay sugerencias
    */
   private async detectarYMostrarHomologoParaArticulo(clave: string, cantidad: number) {
-    // No sugerir si está en lista negra
-    if (this.esClaveEnListaNegra(clave)) return;
-
     try {
-      const sugerencias = await this.homologosSolicitudService.obtenerMejoresHomologos(
+      const deteccion = await this.solicitudesHomologosFacade.detectarHomologoManual(
         clave,
         cantidad,
         this.inventarioDisponible,
-        this.cluesimbActual
+        this.cluesimbActual,
+        this.articulosSolicitados,
+        this.listaNegraHomologos
       );
 
-      if (sugerencias?.length) {
-        const claveOriginalNorm = this.normClave(clave);
-        const existentes = new Set(this.articulosSolicitados.map(a => this.normClave(a.clave)));
-        const sugerenciasFiltradas = sugerencias.filter(s => {
-          const candNorm = this.normClave(s.sustituto);
-          if (!candNorm) return false;
-          if (candNorm === claveOriginalNorm) return true;
-          return !existentes.has(candNorm);
+      if (deteccion.omitidas > 0) {
+        this.toast.warn({
+          title: 'Alternativas omitidas',
+          content: `${deteccion.omitidas} alternativa(s) ya estaban en la lista y no se mostraron.`,
+          duration: 4
         });
+      }
 
-        const omitidas = sugerencias.length - sugerenciasFiltradas.length;
-        if (omitidas > 0) {
-          this.toast.warn({
-            title: 'Alternativas omitidas',
-            content: `${omitidas} alternativa(s) ya estaban en la lista y no se mostraron.`,
-            duration: 4
-          });
-        }
-
-        if (!sugerenciasFiltradas.length) {
-          return;
-        }
-
+      if (deteccion.sugerencias.length > 0) {
         this.homologoModalData = {
-          sugerencias: sugerenciasFiltradas,
+          sugerencias: deteccion.sugerencias,
           clave,
           cantidad,
           inventarioDisponible: this.inventarioDisponible
@@ -577,7 +562,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error detectando homologos:', error);
-      // Fallar silenciosamente - la captura continúa normalmente
+      // Fallar silenciosamente - la captura continua normalmente
     }
   }
 
@@ -588,13 +573,13 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const originalClave = this.homologoModalData?.clave;
     if (!originalClave) return;
 
-    const originalNorm = this.normClave(originalClave);
-    const sustitutoNorm = this.normClave(candidato.sustituto);
-    const duplicada = this.articulosSolicitados.some(a => {
-      const actualNorm = this.normClave(a.clave);
-      return actualNorm === sustitutoNorm && actualNorm !== originalNorm;
-    });
-    if (duplicada) {
+    const outcome = await this.solicitudesHomologosFacade.aplicarReemplazoManual(
+      this.articulosSolicitados,
+      originalClave,
+      candidato,
+    );
+
+    if (outcome.duplicada) {
       this.toast.warn({
         title: 'Clave sugerida ya capturada',
         content: `La clave ${candidato.sustituto} ya existe en la lista. Elige otra alternativa o conserva la original.`,
@@ -603,41 +588,16 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Encontrar y reemplazar el artículo más reciente agregado
-    const index = this.articulosSolicitados.findIndex(a => a.clave === originalClave);
-    if (index >= 0) {
-      const originalCantidad = this.articulosSolicitados[index].cantidad;
-      const nuevaCantidad = Math.round(originalCantidad * Number(candidato.factor));
-
-      // Reemplazar
-      this.articulosSolicitados[index].clave = candidato.sustituto;
-      this.articulosSolicitados[index].cantidad = nuevaCantidad;
-
-      // Buscar descripción del nuevo artículo
-      try {
-        const resp = await firstValueFrom(this.articulosService
-          .buscarArticulos(candidato.sustituto));
-        console.log('resp de modal de homologos', resp);
-        if (resp?.resultados && resp.resultados.length > 0) {
-          const art = resp.resultados[0];
-          this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
-          this.articulosSolicitados[index].unidadMedida = art.unidadMedida ??
-            (art.presentacion ?? '');
-          this.articulosSolicitados[index].observaciones =
-            `Reemplaza ${originalClave} .`;
-        }
-      } catch {
-        // Silencio si falla
-      }
-
+    if (outcome.reemplazo) {
+      this.articulosSolicitados = outcome.reemplazo.articulos;
       this.rebuildExistingClaves();
       this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
         JSON.stringify(this.articulosSolicitados)
       );
 
       this.toast.success({
-        title: 'Artículo reemplazado',
-        content: `${originalClave} x ${candidato.sustituto} (${nuevaCantidad} un.)`,
+        title: 'Art?culo reemplazado',
+        content: `${outcome.reemplazo.originalClave} x ${outcome.reemplazo.sustituto} (${outcome.reemplazo.nuevaCantidad} un.)`,
         duration: 4
       });
     }
@@ -666,12 +626,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /**
-   * Verifica si una clave está en lista negra
-   */
-  private esClaveEnListaNegra(clave: string): boolean {
-    return this.listaNegraHomologos.has(clave.toUpperCase());
-  }
 
   // ============================================
   // FLUJO 2: Métodos para Importación
@@ -682,14 +636,14 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   private async detectarYMostrarHomologosImport() {
     try {
-      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+      const sugerencias = await this.solicitudesHomologosFacade.detectarHomologosParaLista(
         this.articulosSolicitados,
         this.inventarioDisponible,
         this.cluesimbActual
       );
 
       if (sugerencias?.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Espera a que se cierre el primer modal
+        await new Promise(resolve => setTimeout(resolve, 500));
         this.homologoResumenOrigen = 'importacion';
         this.homologoResumenTotalImportados = this.articulosSolicitados.length;
         this.articulosConHomologos = sugerencias;
@@ -697,8 +651,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.cdRef.detectChanges();
       }
     } catch (error) {
-      console.error('Error detectando homologos en importación:', error);
-      // Fallar silenciosamente
+      console.error('Error detectando homologos en importacion:', error);
     }
   }
 
@@ -708,48 +661,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   async onReemplazarMultiplesDesdeResumen(
     resultados: Array<{ originalClave: string; articulo: ArticuloSolicitud }>
   ) {
-    const norm = (c: string) => this.inventarioService.normalizarClave(c);
-    const clavesActuales = new Set(this.articulosSolicitados.map(a => norm(a.clave)));
-    const aplicables: Array<{ originalClave: string; articulo: ArticuloSolicitud }> = [];
-    const conflictos: string[] = [];
+    const outcome = this.solicitudesHomologosFacade.aplicarReemplazosMultiples(
+      this.articulosSolicitados,
+      resultados,
+    );
 
-    for (const resultado of resultados) {
-      const { originalClave, articulo: nuevoArt } = resultado;
-      const originalNorm = norm(originalClave);
-      const nuevaNorm = norm(nuevoArt.clave);
-      const duplicadaEnLista = nuevaNorm !== originalNorm && clavesActuales.has(nuevaNorm);
-      const duplicadaEnSeleccion = aplicables.some(a => norm(a.articulo.clave) === nuevaNorm);
-
-      if (duplicadaEnLista || duplicadaEnSeleccion) {
-        conflictos.push(nuevoArt.clave);
-        continue;
-      }
-
-      aplicables.push(resultado);
-      clavesActuales.delete(originalNorm);
-      clavesActuales.add(nuevaNorm);
-    }
-
-    for (const resultado of aplicables) {
-      const { originalClave, articulo: nuevoArt } = resultado;
-
-      const index = this.articulosSolicitados.findIndex(a => {
-        const aNorm = this.inventarioService.normalizarClave(a.clave);
-        const origNorm = this.inventarioService.normalizarClave(originalClave);
-        return aNorm === origNorm;
-      });
-
-      if (index >= 0) {
-        this.articulosSolicitados[index].clave = nuevoArt.clave;
-        this.articulosSolicitados[index].cantidad = nuevoArt.cantidad;
-        this.articulosSolicitados[index].descripcion = nuevoArt.descripcion || this.articulosSolicitados[index].descripcion;
-        this.articulosSolicitados[index].unidadMedida = nuevoArt.unidadMedida || this.articulosSolicitados[index].unidadMedida;
-        this.articulosSolicitados[index].presentacion = nuevoArt.presentacion || this.articulosSolicitados[index].presentacion;
-        this.articulosSolicitados[index].observaciones =
-          nuevoArt.observaciones || `Reemplaza ${originalClave} .`;
-      }
-    }
-
+    this.articulosSolicitados = outcome.articulos;
     this.rebuildExistingClaves();
     this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
       JSON.stringify(this.articulosSolicitados)
@@ -757,20 +674,20 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const origen = this.homologoResumenOrigen;
     this.importResumenHomologosVisible = false;
-    if (aplicables.length === 0) {
+    if (outcome.aplicados.length === 0) {
       this.toast.warn({
         title: 'Sin homologaciones seleccionadas',
-        content: conflictos.length > 0
-          ? `No se aplicaron cambios. ${conflictos.length} sugerencia(s) omitida(s) por clave duplicada en la lista.`
+        content: outcome.conflictos.length > 0
+          ? `No se aplicaron cambios. ${outcome.conflictos.length} sugerencia(s) omitida(s) por clave duplicada en la lista.`
           : 'No se aplicaron cambios; se conservaron los articulos originales.',
         duration: 5
       });
     } else {
       this.toast.success({
         title: origen === 'modales' ? 'Selección completada' : 'Importación completada',
-        content: conflictos.length > 0
-          ? `Se procesaron ${aplicables.length} sugerencia(s). ${conflictos.length} omitida(s) por duplicado.`
-          : `Se procesaron ${aplicables.length} articulos con sugerencias`,
+        content: outcome.conflictos.length > 0
+          ? `Se procesaron ${outcome.aplicados.length} sugerencia(s). ${outcome.conflictos.length} omitida(s) por duplicado.`
+          : `Se procesaron ${outcome.aplicados.length} articulos con sugerencias`,
         duration: 4
       });
     }
@@ -848,7 +765,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   confirmarLimpiezaModal() {
     this.abrirModalConfirmacion(
       '¿Estás seguro?',
-      'Esta acción eliminará todos los articulos capturados. ¿Deseas continuar?',
+      'Esta acción eliminará todos los artículos capturados. ¿Deseas continuar?',
       'Sí, limpiar todo',
       'Cancelar',
       () => this.confirmarLimpieza()
@@ -856,81 +773,47 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async exportarExcelConTemplate(nombreArchivo: string) {
-    const restrict = await this.isImportRestricted();
+    this.refreshDatosCluesDesdeStorage();
 
-    let items = this.articulosSolicitados;
-    let fueraDeKit: string[] = [];
-
-    if (restrict) {
-      const enKit = items.filter(a => this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual));
-      fueraDeKit = items.filter(a => !this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual)).map(a => a.clave);
-      items = enKit;
-    }
-
-    // âœ… arma payload desde aquí­ (tienes datosClues, items y modoStandalone)
-    // Asegura tener datosClues fresco:
-    if (!this.modoStandalone) {
-      const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
-      if (cluesStr) this.datosClues = JSON.parse(cluesStr) as DatosClues;
-    }
-
-    const enProduccion = environment.production;
-    const payload = this.bitacoraService.buildPayload(this.datosClues, items, this.modoStandalone);
-
-    if (payload && enProduccion ) {
-      await this.bitacoraService.registrar(payload);
-    }
-
-    this.excelService.exportarExcelConTemplate(
-      'template.xlsx',
+    const resultado = await this.solicitudesExportFacade.exportar({
       nombreArchivo,
-      items, // ya filtrados si aplica la bandera
-      this.modoStandalone,
-      this.inventarioDisponible,
-      this.cpmsDeCluesActual,
-      // predicado para saber si la clave está en el KIT
-      (clave) => this.cpmService.isClaveInKit(this.normClave(clave), this.cluesimbActual)
-    );
-    this.abrirModalInfo(
-      this.generarPrecarga ? 'Archivos generados' : 'Archivo generado',
-      'Por favor cerciórese que la información está en buen estado y sirva para sus necesidades. Presione "Limpiar captura" para iniciar una nueva.'
-    );
+      articulos: this.articulosSolicitados,
+      modoStandalone: this.modoStandalone,
+      generarPrecarga: this.generarPrecarga,
+      datosClues: this.datosClues,
+      inventarioDisponible: this.inventarioDisponible,
+      cpmsDeCluesActual: this.cpmsDeCluesActual,
+    });
 
-    if (restrict && fueraDeKit.length) {
+    this.abrirModalInfo(resultado.tituloModal, resultado.mensajeModal);
+
+    if (resultado.advertenciaKit) {
       this.toast.warn({
         title: 'Exportación filtrada',
-        content: `Se excluyeron ${fueraDeKit.length} claves fuera de KIT (flag activa).`,
+        content: resultado.advertenciaKit,
         duration: 5
       });
-    }
-
-    if (this.generarPrecarga) {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Espera 1 segundo
-      let nombreArchivPrecarga = 'Precarga';
-      if (!this.modoStandalone) {
-        nombreArchivPrecarga += '-' + this.datosClues.hospital?.cluesimb!;
-        nombreArchivPrecarga += '-' + this.datosClues.tipoInsumo.split('-');
-        nombreArchivPrecarga += '-' + this.datosClues.tipoPedido;
-      }
-      nombreArchivPrecarga += '_' + new Date().toISOString().slice(0, 7);
-      this.excelService.exportarExcelPrecarga(nombreArchivPrecarga, items);
     }
   }
 
   mostrarModalExportar() {
-    this.nombreArchivo = `Solicitud-${new Date().toISOString().slice(0, 7)}`;
-    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
-    let nombreArchivoCompleto = this.nombreArchivo;
-    if (cluesStr && !this.modoStandalone) {
-      this.datosClues = JSON.parse(cluesStr) as DatosClues;
-
-      nombreArchivoCompleto = this.datosClues.hospital?.cluesimb!; // this.iniciales(this.datosClues.nombreHospital);
-      nombreArchivoCompleto += '-' + this.datosClues.tipoInsumo.split('-');
-      nombreArchivoCompleto += '-' + this.datosClues.tipoPedido;
-      nombreArchivoCompleto += '_' + this.datosClues.periodo.replace(/\s+/g, '-');
-      this.nombreArchivo = nombreArchivoCompleto;
-    }
+    this.refreshDatosCluesDesdeStorage();
+    this.nombreArchivo = this.solicitudesExportFacade.construirNombreArchivoSugerido(
+      this.datosClues,
+      this.modoStandalone,
+    );
     this.modalPedirNombreArchivo = true;
+  }
+
+  private refreshDatosCluesDesdeStorage(): void {
+    if (this.modoStandalone) {
+      return;
+    }
+
+    const cluesStr = this.storageSolicitudService.getDatosCluesFromLocalStorage();
+    if (cluesStr) {
+      this.datosClues = JSON.parse(cluesStr) as DatosClues;
+    }
   }
 
   todosLosArticulosConCantidadMayorACero(): boolean {
@@ -945,23 +828,9 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.tablaArticulosComponent?.scrollPrimerPendiente();
   }
 
-  iniciales(original: string): string {
-    // 1. Filtrar palabras relevantes (ignorando "de", "y", "el", etc.)
-    const palabrasRelevantes = original
-      .split(' ')
-      .filter(palabra => !['de', 'y', 'el', 'la', 'los'].includes(palabra.toLowerCase()));
-
-    // 2. Obtener iniciales y ponerlas en mayúscula
-    const iniciales = palabrasRelevantes
-      .map(palabra => palabra.charAt(0).toUpperCase())
-      .join('');
-
-    return iniciales;
-  }
-
   confirmarExportacion() {
     this.modalPedirNombreArchivo = false;
-    this.exportarExcelConTemplate(this.nombreArchivo);
+    void this.exportarExcelConTemplate(this.nombreArchivo);
   }
 
   eliminarArticulo(index: number) {
@@ -1025,7 +894,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.articulosSolicitados.length > 0) {
       this.abrirModalConfirmacion(
         'Precarga detectada',
-        'Esto reemplazará los articulos ya capturados. Â¿Deseas continuar?',
+        'Esto reemplazará los artículos ya capturados. ¿Deseas continuar?',
         'Sí, reemplazar',
         'Cancelar',
         () => fileInput.click()
@@ -1041,178 +910,60 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const archivo = (event.target as HTMLInputElement).files?.[0];
     if (!archivo) return;
 
-    let usandoTemplate = false;
-
     try {
-      // limpio lista de articulos capturados
       this.articulosSolicitados = [];
       this.existingClavesList = [];
       const datosCluesStorage = JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}') as DatosClues;
-      // a veces se pierde el this.datosClues y se queda en un clues elegido anteriormente
       if (datosCluesStorage && this.datosClues?.hospital?.cluesimb !== datosCluesStorage?.hospital?.cluesimb) {
-        // tiene prioridad el localstorage, asi que actualizo el this.datosClues
         this.datosClues = datosCluesStorage;
       }
-      // 1) Asegura KIT en memoria (silencioso si falla)
-      const cluesimbActual = this.datosClues?.hospital?.cluesimb;
 
+      const cluesimbActual = this.datosClues?.hospital?.cluesimb;
       if (cluesimbActual) {
         try {
           await firstValueFrom(this.cpmService.ensureForCluesimb(cluesimbActual));
           this.loadExistenciasUnidad(cluesimbActual);
-        } catch { }
-      }
-
-      // 2) Lee archivo
-      let datos = await this.excelService.leerArchivoPrecarga(archivo);
-      if (!datos || datos.length === 0) {
-        this.abrirModalInfo('Archivo vacÃ­o', 'El archivo está vacÃ­o o no contiene datos válidos.');
-        return;
-      }
-
-      // 3) Detecta columnas
-      let headers = Object.keys(datos[0]).map(h => h.toLowerCase().trim());
-      let colClave = headers.find(h => h.includes('clave'));
-      let colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
-        !h.includes('cantidad_propuesta'));
-
-      if (!colClave) {
-        if (datos.length < 8) {
-          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene encabezado o formato no es válido.');
-          return;
-        }
-        headers = Object.values(datos[7]).map((h: any) => (h + '').toLowerCase().trim());
-        colClave = headers.find(h => h.includes('clave'));
-        colCantidad = headers.find(h => (h.includes('cantidad') || h.includes('solicitado') || h.includes('total')) &&
-          !h.includes('cantidad_propuesta'));
-        if (!colClave) {
-          this.abrirModalInfo('Encabezado faltante', 'El archivo no contiene columna con clave CNIS o formato no es válido.');
-          return;
-        }
-        datos = datos.slice(8);
-        usandoTemplate = true;
-      }
-
-      // 4) Parseo + acumulación de duplicadas
-      const nuevos: ArticuloSolicitud[] = [];
-      const repetidas: Record<string, number> = {};
-
-      for (const renglon of datos) {
-        let fila: any = { ...renglon };
-        if (usandoTemplate) fila = Object.values(fila);
-
-        let clave: string = ((!usandoTemplate ? (fila[colClave!] || fila[colClave!.toLocaleUpperCase()]) : fila[2]) ?? '')
-          .toString().trim().toUpperCase();
-        if (!clave) continue;
-
-        clave = this.inventarioService.normalizarClave(clave);
-        let cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!] : fila[5]) || 0 : 0;
-
-        if (cantidad <= 0) {
-          cantidad = colCantidad ? parseInt(!usandoTemplate ? fila[colCantidad!.toLocaleUpperCase()] : fila[5]) || 0 : 0;
-          if (cantidad <= 0) continue;
-        }
-
-        const existente = nuevos.find(a => a.clave === clave);
-        if (existente) {
-          existente.cantidad += cantidad;
-          repetidas[clave] = (repetidas[clave] || 0) + cantidad;
-        } else {
-          nuevos.push({
-            clave, descripcion: '', unidadMedida: '', cantidad, cpm: 0,
-            presentacion: '',
-            observaciones: ''
-          });
+        } catch {
+          // noop
         }
       }
 
-      // 5) Filtrar por flag (si está ON, sólo claves del KIT)
-      const restrict = await this.isImportRestricted();
-      let bloqueadas: string[] = [];
+      const resultado = await this.solicitudesImportFacade.procesarArchivoPrecarga({
+        archivo,
+        cluesimb: cluesimbActual ?? '',
+        cpmIndex: this.cpmIndex,
+      });
 
-      if (restrict) {
-        const permitidas: ArticuloSolicitud[] = [];
-        for (const a of nuevos) {
-          const ok = this.cpmService.isClaveInKit(this.normClave(a.clave), this.cluesimbActual);
-          if (ok) permitidas.push(a); else bloqueadas.push(a.clave);
-        }
-        this.articulosSolicitados = permitidas;
-      } else {
-        this.articulosSolicitados = nuevos;
-      }
-      this.rebuildExistingClaves();
-    this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
+      this.articulosSolicitados = resultado.articulos;
+      this.existingClavesList = resultado.clavesExistentes;
+      this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
         JSON.stringify(this.articulosSolicitados)
       );
 
-      // 6) Completar desc/unidad + poner CPM
-      this.autocompletarDatos();
-
-      // 7) Mátricas del KIT
-      const kitTotal = this.cpmService.getKitCountFor(this.cluesimbActual);
-      const clavesNorm = this.articulosSolicitados.map(a => this.normClave(a.clave));
-      const enKit = clavesNorm.filter(c => this.cpmService.isClaveInKit(c, this.cluesimbActual)).length;
-      const fueraKit = this.articulosSolicitados.length - enKit;
-
-      // 8) Duplicadas (preview bonito)
-      const dupKeys = Object.keys(repetidas);
-      const dupPreview = dupKeys.length > 0
-        ? (() => {
-          const top = dupKeys.slice(0, 10).join(', ');
-          const extra = dupKeys.length > 10 ? ` y ${dupKeys.length - 10} másâ€¦` : '';
-          return `${top}${extra}`;
-        })()
-        : '';
-
-      // 9) ÃšNICO modal de resumen
       const lineas: string[] = [];
-      lineas.push(`âœ” Claves Importadas: ${this.articulosSolicitados.length}`);
-      /*lineas.push(`âœ” En KIT: ${enKit}/${kitTotal || 'Â¿?'}`);
-      if (bloqueadas.length) {
-        lineas.push(`â›” Bloqueadas por bandera: ${bloqueadas.length}`);
-      } else {
-        lineas.push(`â€¢ Fuera de KIT: ${fueraKit}`);
-      }*/
-      if (dupKeys.length > 0) lineas.push(`â„¹ Duplicadas combinadas (${dupKeys.length}): ${dupPreview}`);
+      lineas.push(`Claves importadas: ${this.articulosSolicitados.length}`);
+      if (resultado.duplicadas.length > 0) {
+        lineas.push(`Duplicadas combinadas (${resultado.duplicadas.length}): ${resultado.duplicadasPreview}`);
+      }
 
-      // âœ¨ FLUJO 2: NUEVO - Detectar homologos para articulos importados
       this.detectarYMostrarHomologosImport();
-
       this.abrirModalInfo('Importación completada', lineas.join('\n'));
-
     } catch (error) {
+      if (error instanceof SolicitudesImportError) {
+        if (error.code === 'empty_file') {
+          this.abrirModalInfo('Archivo vacío', error.message);
+        } else {
+          this.abrirModalInfo('Encabezado faltante', error.message);
+        }
+        return;
+      }
+
       console.error('Error al leer archivo:', error);
       this.abrirModalInfo('Error al importar', 'Hubo un problema al procesar el archivo.');
     } finally {
       input.value = '';
     }
   }
-
-  autocompletarDatos() {
-    this.articulosService.getArticulosMapa().subscribe({
-      next: (catalogo) => {
-        for (const art of this.articulosSolicitados) {
-          const encontrado = catalogo[(art.clave || '').toUpperCase()];
-          if (encontrado) {
-            art.descripcion = encontrado.descripcion;
-            art.unidadMedida = encontrado.presentacion ?? '';
-            const cpm = this.cpmIndex.get(this.normClave(art.clave)) ?? 0;
-            art.cpm = cpm;
-          }
-        }
-
-        this.storageSolicitudService
-          .setArticulosSolicitadosInLocalStorage(
-            JSON.stringify(this.articulosSolicitados));
-        this.cdRef.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error en autocompletarDatos():', err);
-        this.abrirModalInfo('Error', 'No se pudieron autocompletar los datos de los insumos.');
-      }
-    });
-  }
-
   private async shouldAskSurvey(cluesimb: string): Promise<boolean> {
     if (!cluesimb) return false;
 
@@ -1243,7 +994,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!items?.length) return items as Array<T & EnrichedProps>;
 
     return items.map((it) => {
-      const base = it as Record<string, any>;     // â† asegura que es "object" para el spread
+      const base = it as Record<string, any>;     // asegura que es "object" para el spread
       const clave = this.normClave(base['clave']);
 
       const inv = this.invIndex.get(clave);
@@ -1256,7 +1007,7 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       const enKit = this.cpmService.isClaveInKit(clave, this.cluesimbActual);
 
       return {
-        ...base,               // âœ… ya es un object
+        ...base,               // ya es un object
         _azm: azm,
         _aze: aze,
         _azt: azt,
@@ -1265,23 +1016,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
         _enKit: enKit,
       } as T & EnrichedProps;
     });
-  }
-
-  private async isImportRestricted(): Promise<boolean> {
-    const cluesimb =
-      this.datosClues?.hospital?.cluesimb ||
-      (JSON.parse(this.storageSolicitudService.getDatosCluesFromLocalStorage() || '{}')?.hospital?.cluesimb ?? '');
-
-    // const nivel: Nivel = this.estaCapturandoPrimerNivel() ? 'PRIMER_NIVEL' : 'SEGUNDO_NIVEL';
-
-    try {
-      // const eff = await this.flags.getEffective({ cluesimb, nivel });
-      const eff = await this.featureFlagsService.getEffective({ cluesimb });
-      return !!eff['IMPORT_LIMIT_TO_KIT'];
-    } catch {
-      // si no se pudo consultar el flag, no bloquees (comportamiento actual)
-      return false;
-    }
   }
 
   private async loadEditCpmsFlag(): Promise<void> {
@@ -1421,12 +1155,12 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ============================================
-  // FLUJO 3: Mátodos para Modales CPM/KIT
+  // FLUJO 3: Métodos para Modales CPM/KIT
   // ============================================
 
   private async detectarYMostrarHomologosDesdeModales(articulos: ArticuloSolicitud[]) {
     try {
-      const sugerencias = await this.homologosSolicitudService.detectarHomologosParaArticulos(
+      const sugerencias = await this.solicitudesHomologosFacade.detectarHomologosParaLista(
         articulos,
         this.inventarioDisponible,
         this.cluesimbActual
@@ -1448,7 +1182,6 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error detectando homologos en modales:', error);
-      // Fallar silenciosamente
     }
   }
 
@@ -1459,32 +1192,21 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     const { original, candidato } = event;
     if (!original || !candidato) return;
 
-    const index = this.articulosSolicitados.findIndex(a => a.clave === original.originalClave);
-    if (index < 0) return;
+    const reemplazo = await this.solicitudesHomologosFacade.aplicarReemplazoDesdeOportunidad(
+      this.articulosSolicitados,
+      original.originalClave,
+      original.originalCantidad,
+      candidato,
+    );
 
-    const nuevaCantidad = Math.round(original.originalCantidad * Number(candidato.factor));
+    if (!reemplazo) return;
 
-    this.articulosSolicitados[index].clave = candidato.sustituto;
-    this.articulosSolicitados[index].cantidad = nuevaCantidad;
-
-    // Buscar descripción del nuevo artículo
-    try {
-      const resp = await this.articulosService.buscarArticulos(candidato.sustituto).toPromise();
-      if (resp?.resultados && resp.resultados.length > 0) {
-        const art = resp.resultados[0];
-        this.articulosSolicitados[index].descripcion = art.descripcion ?? '';
-        this.articulosSolicitados[index].unidadMedida = art.unidadMedida ?? '';
-      }
-    } catch {
-      // Silencio
-    }
-
+    this.articulosSolicitados = reemplazo.articulos;
     this.rebuildExistingClaves();
     this.storageSolicitudService.setArticulosSolicitadosInLocalStorage(
       JSON.stringify(this.articulosSolicitados)
     );
 
-    // Remover de oportunidades
     this.oportunidadesDisponibles = this.oportunidadesDisponibles.filter(
       o => o.originalClave !== original.originalClave
     );
@@ -1494,8 +1216,8 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.toast.success({
-      title: 'Artículo reemplazado',
-      content: `${original.originalClave} â†’ ${candidato.sustituto}`,
+      title: 'Art?culo reemplazado',
+      content: `${reemplazo.originalClave} -> ${reemplazo.sustituto}`,
       duration: 3
     });
 
@@ -1565,6 +1287,17 @@ export class SolicitudesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cpmsDeCluesActual = $event;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
