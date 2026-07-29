@@ -5,7 +5,7 @@ Aplicación web en Angular 22 para autenticación y administración de catálogo
 ## Tecnologías
 
 - Angular 22 con componentes standalone.
-- Angular Material.
+- spartan.ng.
 - Signals para estado local y de autenticación.
 - RxJS para peticiones, búsqueda con espera y coordinación de operaciones.
 - Vitest mediante Angular CLI.

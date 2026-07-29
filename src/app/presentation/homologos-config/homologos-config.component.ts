@@ -8,6 +8,7 @@ import {
 } from '../../models/homologos/homologo-crud.model';
 import { HomologosFormModalComponent } from './homologos-form-modal.component';
 import { HomologosCrudService } from '../../infrastructure/homologos-crud.service';
+import { HomologosExcelExporter } from '../../infrastructure/excel/homologos-excel-exporter';
 
 type SortBy = 'id' | 'clave' | 'sustituto' | 'factor' | 'claveDescripcion' | 'sustitutoDescripcion';
 type SortOrder = 'ASC' | 'DESC';
@@ -24,10 +25,12 @@ type FormMode = 'create' | 'edit';
 export class HomologosConfigComponent {
   private api = inject(HomologosCrudService);
   private toast = inject(NgFastToastService);
+  private excelExporter = new HomologosExcelExporter();
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deleting = signal(false);
+  readonly exportando = signal(false);
 
   readonly allItems = signal<HomologoCrudUiRow[]>([]);
   readonly search = signal('');
@@ -112,7 +115,7 @@ export class HomologosConfigComponent {
         this.loading.set(false);
       },
       error: (err) => {
-        const message = err?.error?.error ?? 'No fue posible cargar los homólogos.';
+        const message = err?.error?.error ?? 'No fue posible cargar las relaciones.';
         this.error.set(message);
         this.loading.set(false);
       },
@@ -185,6 +188,31 @@ export class HomologosConfigComponent {
     this.deleteTarget.set(null);
   }
 
+  async exportarExcel(): Promise<void> {
+    const relaciones = this.sorted();
+    if (!relaciones.length || this.exportando()) return;
+
+    this.exportando.set(true);
+    try {
+      const fecha = new Date().toISOString().slice(0, 10);
+      await this.excelExporter.exportar(`Relaciones_sustitucion_${fecha}`, relaciones);
+      this.toast.success({
+        title: 'Exportación completada',
+        content: `Se exportaron ${relaciones.length} relación(es).`,
+        duration: 5,
+      });
+    } catch (error) {
+      console.error('No fue posible exportar las relaciones a Excel.', error);
+      this.toast.error({
+        title: 'No se pudo exportar',
+        content: 'Ocurrió un error al generar el archivo de Excel.',
+        duration: 7,
+      });
+    } finally {
+      this.exportando.set(false);
+    }
+  }
+
   saveRow(payload: HomologoCrudUpsertPayload): void {
     const factor = Number(payload.factor);
     if (!Number.isFinite(factor)) {
@@ -198,10 +226,10 @@ export class HomologosConfigComponent {
     if (this.formMode() === 'create') {
       this.api.create({ ...payload, factor }).subscribe({
         next: () => {
-          this.handleMutationSuccess('Homólogo creado correctamente.');
+          this.handleMutationSuccess('Relación creada correctamente.');
         },
         error: (err) => {
-          this.handleMutationError(err?.error?.error ?? 'No fue posible crear el homólogo.');
+          this.handleMutationError(err?.error?.error ?? 'No fue posible crear la relación.');
         },
       });
       return;
@@ -215,10 +243,10 @@ export class HomologosConfigComponent {
 
     this.api.update(id, { ...payload, factor }).subscribe({
       next: () => {
-        this.handleMutationSuccess('Homólogo actualizado correctamente.');
+        this.handleMutationSuccess('Relación actualizada correctamente.');
       },
       error: (err) => {
-        this.handleMutationError(err?.error?.error ?? 'No fue posible actualizar el homólogo.');
+        this.handleMutationError(err?.error?.error ?? 'No fue posible actualizar la relación.');
       },
     });
   }
@@ -234,16 +262,16 @@ export class HomologosConfigComponent {
       next: () => {
         this.deleting.set(false);
         this.deleteTarget.set(null);
-        this.message.set('Homólogo eliminado correctamente.');
+        this.message.set('Relación eliminada correctamente.');
         this.toast.success({
-          title: 'Homólogo eliminado',
-          content: `${target.clave} -> ${target.sustituto} fue eliminado.`,
+          title: 'Relación eliminada',
+          content: `Se eliminó la relación entre ${target.clave} y ${target.sustituto}.`,
           duration: 5,
         });
         this.loadAll();
       },
       error: (err) => {
-        const message = err?.error?.error ?? 'No fue posible eliminar el homólogo.';
+        const message = err?.error?.error ?? 'No fue posible eliminar la relación.';
         this.deleting.set(false);
         this.error.set(message);
         this.toast.error({

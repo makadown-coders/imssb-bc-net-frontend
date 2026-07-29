@@ -11,7 +11,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
-  { path: 'homologos-config', loadComponent: () => import('./presentation/homologos-config/homologos-config.component').then((module) => module.HomologosConfigComponent), canActivate: [authGuard, proyectosSaludGuard], title: 'Configuración de homologos' },
+  { path: 'homologos-config', loadComponent: () => import('./presentation/homologos-config/homologos-config.component').then((module) => module.HomologosConfigComponent), canActivate: [authGuard, proyectosSaludGuard], title: 'Relaciones de sustitución' },
   { path: 'ib-onco', loadComponent: () => import('./presentation/ib-onco/ib-onco-page.component').then((module) => module.IbOncoPageComponent), canActivate: [authGuard, ibOncoGuard], title: 'IB Onco' },
   { path: 'solicitudes', loadComponent: () => import('./presentation/solicitudes/layout/layout.component').then((module) => module.LayoutComponent), canActivate: [authGuard, solicitudesGuard], title: 'Solicitudes de abasto' },
   { path: 'solicitudes-config', loadComponent: () => import('./presentation/solicitudes-config/solicitudes-config.component').then((module) => module.SolicitudesConfigComponent), canActivate: [authGuard, adminTicGuard], title: 'Configuración de solicitudes' },
