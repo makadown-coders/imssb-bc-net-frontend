@@ -1,0 +1,264 @@
+<div class="page-shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Relaciones de sustitución</h1>
+      <p class="hero-copy">
+        Vincula claves que pueden surtirse entre sí cuando alguna no tenga existencias suficientes. Ambas claves tienen el mismo nivel dentro de la relación.
+      </p>
+    </div>
+
+    <button type="button" class="primary-cta" (click)="openCreate()">
+      Nueva relación
+    </button>
+  </header>
+
+  <section class="toolbar card" aria-label="Filtros de relaciones de sustitución">
+    <div class="search-block">
+      <label class="search-label" for="homologos-search">Buscar relaciones</label>
+      <div class="search-input-wrap">
+        <input
+          id="homologos-search"
+          class="search-input"
+          type="search"
+          placeholder="Clave A, clave B, descripción o factor"
+          [value]="search()"
+          (input)="onSearchInput($any($event.target).value)"
+        />
+        @if (hasActiveSearch()) {
+          <button
+            type="button"
+            class="clear-search"
+            aria-label="Limpiar búsqueda"
+            (click)="clearSearch()"
+          >
+            Limpiar
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <button
+        type="button"
+        class="secondary-btn"
+        (click)="exportarExcel()"
+        [disabled]="loading() || exportando() || total() === 0"
+      >
+        {{ exportando() ? 'Exportando...' : 'Exportar a Excel' }}
+      </button>
+
+      <label class="page-size" for="homologos-page-size">
+        <span>Filas por página</span>
+        <select
+          id="homologos-page-size"
+          class="page-size-select"
+          [value]="pageSize()"
+          (change)="changePageSize($any($event.target).value)"
+        >
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  @if (message()) {
+    <div class="status-banner status-ok" role="status">{{ message() }}</div>
+  }
+
+  @if (error()) {
+    <div class="status-banner status-error" role="alert">{{ error() }}</div>
+  }
+
+  <section class="summary-grid">
+    <article class="summary-card card">
+      <span class="summary-label">Total de relaciones</span>
+      <strong>{{ allItems().length }}</strong>
+      <small>Catálogo cargado desde la API actual.</small>
+    </article>
+
+    <article class="summary-card card">
+      <span class="summary-label">Resultados visibles</span>
+      <strong>{{ total() }}</strong>
+      <small>
+        @if (hasActiveSearch()) {
+          Coincidencias para "{{ search() }}"
+        } @else {
+          Sin filtro activo
+        }
+      </small>
+    </article>
+
+    <article class="summary-card card">
+      <span class="summary-label">Rango actual</span>
+      <strong>{{ showingFrom() }} - {{ showingTo() }}</strong>
+      <small>Página {{ page() }} de {{ totalPages() }}</small>
+    </article>
+  </section>
+
+  <section class="card listing-card" aria-labelledby="homologos-table-title">
+    <div class="table-head">
+      <div>
+        <h2 id="homologos-table-title">Claves relacionadas</h2>
+        <p>Las claves A y B pueden sustituirse entre sí; su posición no indica prioridad.</p>
+      </div>
+      <span class="table-count">{{ total() }} registro(s)</span>
+    </div>
+
+    @if (loading()) {
+      <div class="state-panel" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Cargando relaciones...</p>
+      </div>
+    } @else if (error() && !hasRows()) {
+      <div class="state-panel error-state" role="alert">
+        <h3>No se pudo cargar el catálogo</h3>
+        <p>{{ error() }}</p>
+        <button type="button" class="secondary-btn" (click)="loadAll()">Reintentar</button>
+      </div>
+    } @else if (!hasRows()) {
+      <div class="state-panel empty-state" role="status">
+        <h3>No hay relaciones registradas</h3>
+        <p>Cuando el catálogo tenga registros aparecerán aquí para administrarlos.</p>
+        <button type="button" class="secondary-btn" (click)="openCreate()">Crear primera relación</button>
+      </div>
+    } @else if (total() === 0) {
+      <div class="state-panel empty-state" role="status">
+        <h3>Sin coincidencias</h3>
+        <p>No encontramos registros para "{{ search() }}".</p>
+        <button type="button" class="secondary-btn" (click)="clearSearch()">Quitar filtro</button>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('id')">
+                  ID <span class="sort-indicator">{{ sortLabel('id') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('clave')">
+                  Clave A <span class="sort-indicator">{{ sortLabel('clave') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('claveDescripcion')">
+                  Descripción A <span class="sort-indicator">{{ sortLabel('claveDescripcion') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('sustituto')">
+                  Clave B <span class="sort-indicator">{{ sortLabel('sustituto') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('sustitutoDescripcion')">
+                  Descripción B <span class="sort-indicator">{{ sortLabel('sustitutoDescripcion') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="sort-btn" (click)="toggleSort('factor')">
+                  Factor A → B <span class="sort-indicator">{{ sortLabel('factor') }}</span>
+                </button>
+              </th>
+              <th scope="col" class="actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of pageItems(); track row.id) {
+              <tr>
+                <td class="mono-cell">{{ row.id }}</td>
+                <td>
+                  <span class="pill">{{ row.clave }}</span>
+                </td>
+                <td>{{ row.claveDescripcion || 'Sin descripción disponible' }}</td>
+                <td>
+                  <span class="pill alt">{{ row.sustituto }}</span>
+                </td>
+                <td>{{ row.sustitutoDescripcion || 'Sin descripción disponible' }}</td>
+                <td class="mono-cell">{{ row.factor }}</td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    class="secondary-btn compact"
+                    (click)="openEdit(row)"
+                    [attr.aria-label]="'Editar relación entre ' + row.clave + ' y ' + row.sustituto"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="danger-btn compact"
+                    (click)="requestDelete(row)"
+                    [attr.aria-label]="'Eliminar relación entre ' + row.clave + ' y ' + row.sustituto"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="pagination" aria-label="Paginación de relaciones de sustitución">
+        <div class="pagination-copy">
+          Mostrando {{ showingFrom() }} a {{ showingTo() }} de {{ total() }} resultados
+        </div>
+
+        <div class="pagination-controls">
+          <button type="button" class="secondary-btn compact" (click)="goToPage(page() - 1)" [disabled]="page() === 1">
+            Anterior
+          </button>
+
+          @for (pageNumber of pageButtons(); track pageNumber) {
+            <button
+              type="button"
+              class="page-btn"
+              [class.is-active]="pageNumber === page()"
+              [attr.aria-current]="pageNumber === page() ? 'page' : null"
+              (click)="goToPage(pageNumber)"
+            >
+              {{ pageNumber }}
+            </button>
+          }
+
+          <button
+            type="button"
+            class="secondary-btn compact"
+            (click)="goToPage(page() + 1)"
+            [disabled]="page() === totalPages()"
+          >
+            Siguiente
+          </button>
+        </div>
+      </footer>
+    }
+  </section>
+</div>
+
+@if (formOpen()) {
+  <app-homologos-form-modal
+    [mode]="formMode()"
+    [row]="editingRow()"
+    [saving]="saving()"
+    (cancel)="closeForm()"
+    (save)="saveRow($event)"
+  />
+}
+
+@if (deleteTarget(); as target) {
+  <app-confirmacion-modal
+    titulo="Eliminar relación"
+    [mensaje]="'Se eliminará la relación entre ' + target.clave + ' y ' + target.sustituto + '. Esta acción no se puede deshacer.'"
+    textoCancelar="Cancelar"
+    [textoConfirmar]="deleting() ? 'Eliminando...' : 'Eliminar'"
+    (cancelar)="cancelDelete()"
+    (confirmar)="confirmDelete()"
+  />
+}

@@ -1,0 +1,25 @@
+<div class="z-50 fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+  <div class="relative p-6 max-w-md w-full bg-white rounded-lg shadow-lg">
+    <h2 class="mb-4 text-xl font-bold text-green-800">Exportar a Excel</h2>
+    <p class="mb-4 text-gray-700">Escriba el nombre del archivo:</p>
+
+    <input [(ngModel)]="nombreArchivo" placeholder="ej. HGT-Medicamento-2025-04"
+      class="p-2 mb-4 w-full border rounded" />
+    <div class="flex items-center mb-4">
+      <input type="checkbox" id="generarPrecarga" class="mr-2" [(ngModel)]="generarPrecarga"
+        (ngModelChange)="generarPrecargaChange.emit($event)" />
+      <label for="generarPrecarga" class="text-sm text-gray-700">
+        Generar precarga para la próxima vez
+      </label>
+    </div>
+
+    <div class="flex justify-end space-x-2">
+      <button (click)="cancelar()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+        Cancelar
+      </button>
+      <button (click)="confirmar()" class="px-4 py-2 text-white bg-green-800 rounded hover:bg-green-900">
+        Descargar Excel
+      </button>
+    </div>
+  </div>
+</div>

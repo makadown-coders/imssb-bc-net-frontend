@@ -1,106 +1,111 @@
-<h2 mat-dialog-title>{{ data.unidad ? 'Editar unidad médica' : 'Nueva unidad médica' }}</h2>
+<section class="dialog-shell">
+  <header class="dialog-header">
+    <p class="dialog-eyebrow">Unidad médica</p>
+    <h2>{{ data.unidad ? 'Editar unidad médica' : 'Nueva unidad médica' }}</h2>
+    <p>Completa la identificación, ubicación y clasificación de la unidad.</p>
+  </header>
 
-<mat-dialog-content>
   <form class="unidad-form" [formGroup]="form">
-    <section>
-      <h3>Identificación</h3>
+    <section class="form-section">
+      <div class="section-heading">
+        <h3>Identificación</h3>
+        <p>Datos básicos para reconocer la unidad dentro del sistema.</p>
+      </div>
+
       <div class="form-grid">
-        <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Nombre</mat-label>
-          <input matInput type="text" formControlName="nombre" maxlength="255" />
-        </mat-form-field>
+        <label class="form-field span-2">
+          <span hlmLabel>Nombre</span>
+          <input hlmInput formControlName="nombre" maxlength="255" />
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>CLUES SSA</mat-label>
-          <input matInput type="text" formControlName="cluessa" maxlength="20" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>CLUES SSA</span>
+          <input hlmInput formControlName="cluessa" maxlength="20" />
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>CLUES IMB</mat-label>
-          <input matInput type="text" formControlName="cluesimb" maxlength="20" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>CLUES IMB</span>
+          <input hlmInput formControlName="cluesimb" maxlength="20" />
+        </label>
 
-        <mat-checkbox formControlName="activo">Activa</mat-checkbox>
+        <label class="checkbox-field span-2">
+          <hlm-checkbox formControlName="activo" />
+          <span>Unidad activa</span>
+        </label>
       </div>
     </section>
 
-    <section>
-      <h3>Ubicación</h3>
+    <section class="form-section">
+      <div class="section-heading">
+        <h3>Ubicación</h3>
+        <p>Referencia territorial y coordenadas para consulta geográfica.</p>
+      </div>
+
       <div class="form-grid">
-        <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Dirección</mat-label>
-          <textarea matInput rows="3" formControlName="direccion"></textarea>
-        </mat-form-field>
+        <label class="form-field span-2">
+          <span hlmLabel>Dirección</span>
+          <textarea hlmTextarea rows="3" formControlName="direccion"></textarea>
+        </label>
 
-        <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Localidad</mat-label>
-          <mat-select formControlName="localidadId">
-            <mat-option [value]="null">Sin asignar</mat-option>
+        <label class="form-field span-2">
+          <span hlmLabel>Localidad</span>
+          <select formControlName="localidadId">
+            <option [ngValue]="null">Sin asignar</option>
             @for (localidad of data.localidades; track localidad.id) {
-              <mat-option [value]="localidad.id">
-                {{ localidad.nombreMunicipio ? localidad.nombreLocalidad + ' · ' + localidad.nombreMunicipio : localidad.nombreLocalidad }}
-              </mat-option>
+              <option [ngValue]="localidad.id">{{ localidad.nombreMunicipio ? localidad.nombreLocalidad + ' · ' + localidad.nombreMunicipio : localidad.nombreLocalidad }}</option>
             }
-          </mat-select>
-        </mat-form-field>
+          </select>
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Latitud</mat-label>
-          <input matInput type="number" step="any" formControlName="latitud" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>Latitud</span>
+          <input hlmInput type="number" step="any" formControlName="latitud" />
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Longitud</mat-label>
-          <input matInput type="number" step="any" formControlName="longitud" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>Longitud</span>
+          <input hlmInput type="number" step="any" formControlName="longitud" />
+        </label>
 
         <div class="map-action span-2">
-          <button
-            mat-icon-button
-            type="button"
-            aria-label="Abrir coordenadas en Google Maps"
-            matTooltip="Abrir en Google Maps"
-            [disabled]="!hasCoordinates"
-            (click)="openMap()"
-          >
-            <mat-icon>map</mat-icon>
-          </button>
-          <span>{{ hasCoordinates ? 'Ver ubicación en Google Maps' : 'Captura latitud y longitud válidas para ver el mapa' }}</span>
+          <button hlmBtn variant="outline" type="button" [disabled]="!hasCoordinates" (click)="openMap()">Abrir mapa</button>
+          <span>{{ hasCoordinates ? 'Ver ubicación en Google Maps' : 'Captura coordenadas válidas para habilitar el mapa' }}</span>
         </div>
       </div>
     </section>
 
-    <section>
-      <h3>Clasificación</h3>
+    <section class="form-section">
+      <div class="section-heading">
+        <h3>Clasificación</h3>
+        <p>Datos operativos para categorizar la unidad médica.</p>
+      </div>
+
       <div class="form-grid">
-        <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Tipo de unidad</mat-label>
-          <mat-select formControlName="tipoUnidadId">
-            <mat-option [value]="null">Sin asignar</mat-option>
+        <label class="form-field span-2">
+          <span hlmLabel>Tipo de unidad</span>
+          <select formControlName="tipoUnidadId">
+            <option [ngValue]="null">Sin asignar</option>
             @for (tipo of data.tiposUnidad; track tipo.id) {
-              <mat-option [value]="tipo.id">{{ tipo.nombreTipo }}</mat-option>
+              <option [ngValue]="tipo.id">{{ tipo.nombreTipo }}</option>
             }
-          </mat-select>
-        </mat-form-field>
+          </select>
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Estrato</mat-label>
-          <input matInput type="text" formControlName="estratoUnidad" maxlength="10" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>Estrato</span>
+          <input hlmInput formControlName="estratoUnidad" maxlength="10" />
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Nivel de atención</mat-label>
-          <input matInput type="text" formControlName="nivelAtencion" maxlength="30" />
-        </mat-form-field>
+        <label class="form-field">
+          <span hlmLabel>Nivel de atención</span>
+          <input hlmInput formControlName="nivelAtencion" maxlength="30" />
+        </label>
       </div>
     </section>
   </form>
-</mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button type="button" mat-dialog-close>Cancelar</button>
-  <button mat-flat-button color="primary" type="button" (click)="save()">
-    <mat-icon>save</mat-icon>
-    <span>Guardar</span>
-  </button>
-</mat-dialog-actions>
+  <footer class="dialog-actions">
+    <button hlmBtn variant="ghost" type="button" (click)="cancel()">Cancelar</button>
+    <button hlmBtn type="button" (click)="save()">Guardar</button>
+  </footer>
+</section>

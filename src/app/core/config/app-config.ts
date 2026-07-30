@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { environment } from '../../../environments/environment';
 
 export interface AppConfig {
+  production: boolean;
   apiBaseUrl: string;
 }
 
@@ -29,6 +30,7 @@ export const API_ENDPOINTS = {
     tipologias: '/api/catalogos/tipologias',
     tipologiasUnidad: '/api/catalogos/tipologias-unidad',
   },
+  inventario: '/api/inventario',
   personas: '/api/personas',
   users: '/api/users',
   roles: '/api/roles',

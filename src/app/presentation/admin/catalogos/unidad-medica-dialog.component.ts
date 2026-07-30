@@ -1,13 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { BrnDialogRef, injectBrnDialogContext } from '@spartan-ng/brain/dialog';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmTextarea } from '@spartan-ng/helm/textarea';
 import { Localidad, TipoUnidad, UnidadMedica } from '../../../domain/catalogos/models/catalogo.model';
 import { UnidadMedicaRequest } from '../../../infrastructure/catalogos/api/catalogos-api.service';
 
@@ -19,24 +17,14 @@ export interface UnidadMedicaDialogData {
 
 @Component({
   selector: 'app-unidad-medica-dialog',
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatCheckboxModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatSelectModule,
-    MatTooltipModule,
-  ],
+  imports: [ReactiveFormsModule, HlmButton, HlmCheckbox, HlmInput, HlmLabel, HlmTextarea],
   templateUrl: './unidad-medica-dialog.component.html',
   styleUrl: './unidad-medica-dialog.component.scss',
 })
 export class UnidadMedicaDialogComponent {
   private readonly formBuilder = inject(UntypedFormBuilder);
-  private readonly dialogRef = inject<MatDialogRef<UnidadMedicaDialogComponent, UnidadMedicaRequest>>(MatDialogRef);
-  readonly data = inject<UnidadMedicaDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject<BrnDialogRef<UnidadMedicaRequest>>(BrnDialogRef);
+  readonly data = injectBrnDialogContext<UnidadMedicaDialogData>();
 
   readonly form = this.formBuilder.group({
     nombre: [this.data.unidad?.nombre ?? '', [Validators.required, Validators.maxLength(255)]],
@@ -89,6 +77,7 @@ export class UnidadMedicaDialogComponent {
       nivelAtencion: this.textOrNull('nivelAtencion'),
     });
   }
+  cancel(): void { this.dialogRef.close(); }
 
   private text(key: string): string {
     return String(this.form.controls[key].value ?? '').trim();

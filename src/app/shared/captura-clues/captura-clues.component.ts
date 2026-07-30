@@ -1,0 +1,220 @@
+// src/app/features/captura-clues/captura-clues.component.ts
+import { AfterViewInit, Component, EventEmitter, inject, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { DatosClues } from '../../models/datos-clues';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideHospital, lucideStethoscope } from '@ng-icons/lucide';
+import { PeriodoPickerComponent } from '../periodo-picker/periodo-picker.component';
+import { Unidadv2 } from '../../models/articulo-solicitud';
+import { PeriodoFechasService } from '../../infrastructure/periodo-fechas/periodo-fechas.service';
+import { StorageSolicitudService } from '../../infrastructure/storage-solicitud.service';
+import { UnidadesService } from '../../infrastructure/unidades.service';
+import { ModoCapturaSolicitud } from '../modo-captura-solicitud';
+
+@Component({
+  selector: 'app-captura-clues',
+  imports: [CommonModule, FormsModule,  PeriodoPickerComponent, NgIcon],
+  templateUrl: './captura-clues.component.html',
+  styleUrl: './captura-clues.component.css',
+  providers: [provideIcons({
+    lucideHospital, lucideStethoscope
+  })]
+})
+export class CapturaCluesComponent implements OnInit, AfterViewInit {
+
+  nombreHospital = '';
+  tipoInsumo = '';
+  periodo = '';
+  labelNivel = '';
+  labelUnidad = '';
+  fechaInicio: Date | null = null;
+  fechaFin: Date | null = null;
+  solicitudService = inject(StorageSolicitudService);
+  unidadesSvc = inject(UnidadesService);
+  //@Output() cluesValido = new EventEmitter<DatosClues>();
+
+  selectedHospital: Unidadv2 | null = null;
+
+  autocompleteHospitales: Unidadv2[] = [];
+  selectedIndex = -1;
+
+  @Output() datosCapturados = new EventEmitter<DatosClues>();
+  @Output() irASolicitud = new EventEmitter<void>();
+
+  tiposInsumoDisponibles: string[] = [
+    'Medicamento',
+    'Material de Curación',
+    'Laboratorio'
+  ];
+
+  tipoPedido = 'Ordinario';
+  responsableCaptura = '';
+
+  tiposInsumoSeleccionados: string[] = [];
+
+  periodoFormateado = '';
+  periodoValido = true;
+  avisoPeriodo?: string;
+  fechasSvc = inject(PeriodoFechasService);
+  @ViewChild('pickerRef') pickerRef?: any; // si quieres abrir el picker desde el padre
+
+  toggleTipoInsumo(tipo: string, event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (checked && !this.tiposInsumoSeleccionados.includes(tipo)) {
+      this.tiposInsumoSeleccionados.push(tipo);
+    } else if (!checked) {
+      this.tiposInsumoSeleccionados = this.tiposInsumoSeleccionados.filter(t => t !== tipo);
+    }
+  }
+
+  ngOnInit() {
+    // carga el caché de unidades desde backend
+    this.unidadesSvc.load().subscribe({
+      // noop: el cache queda en el BehaviorSubject y searchLocal lo utilizará
+      error: (e) => console.error('Error cargando unidades', e)
+    });
+    if (this.estaEnModoCapturaPrimerNivel()) {
+      this.labelNivel = 'Primer Nivel';
+      this.labelUnidad = 'Nombre de la Unidad Medica';
+    } else {
+      this.labelNivel = 'Segundo Nivel';
+      this.labelUnidad = 'Nombre del Hospital';
+    }
+
+    const cluesStr = this.solicitudService.getDatosCluesFromLocalStorage();
+    if (cluesStr) {
+      const datosClues = JSON.parse(cluesStr) as DatosClues;
+      this.nombreHospital = datosClues.nombreHospital;
+      this.tiposInsumoSeleccionados = datosClues.tipoInsumo.split(', ');
+      this.periodoFormateado = datosClues.periodo;
+      if (datosClues.fechaInicio) {
+        this.fechaInicio = new Date(datosClues.fechaInicio);
+      }
+      if (datosClues.fechaFin) {
+        this.fechaFin = new Date(datosClues.fechaFin);
+      }
+      if (!this.selectedHospital) this.selectedHospital = datosClues.hospital as any as Unidadv2; // asegúrate que DatosClues.hospital sea Unidadv2
+      this.tipoPedido = datosClues?.tipoPedido ?? 'Ordinario';
+      this.responsableCaptura = datosClues?.responsableCaptura ?? '';
+      this.validarContraPasado();
+    }
+    // TODO: TEMPORAL EN LO QUE RESUELVE CDMX
+    if (this.estaEnModoCapturaPrimerNivel()) {
+      this.tiposInsumoSeleccionados = ['Medicamento'];
+    }
+  }
+
+  /**
+   * Valida contra "no pasado" (aquí permitimos HOY; cambia a false si quieres futuro estricto)
+   */
+  private validarContraPasado() {
+    // primero validar que tanto fecha inicio y fecha fin tengan valor
+    if (!this.fechaInicio || !this.fechaFin) {
+      return;
+    }
+    const contienePasado = this.fechasSvc.rangeContainsPast(this.fechaInicio, this.fechaFin, /*allowToday*/ true);
+    this.periodoValido = !contienePasado;
+
+    if (!this.periodoValido) {
+      this.avisoPeriodo = 'El periodo guardado incluye fechas en el pasado. Por favor selecciona un nuevo periodo.';
+    }
+  }
+
+  ngAfterViewInit() {
+    this.validarContraPasado();
+    // Si al cargar detectaste periodo inválido, puedes abrirlo automáticamente UNA vez
+    if (!this.periodoValido && !sessionStorage.getItem('PP_OPENED_ON_INVALID')) {
+      setTimeout(() => this.pickerRef?.openCalendario?.(), 0);
+      sessionStorage.setItem('PP_OPENED_ON_INVALID', '1');
+    }
+  }
+
+  public estaEnModoCapturaPrimerNivel(): boolean {
+    return this.solicitudService.getModoCapturaSolicitud() === ModoCapturaSolicitud.PRIMER_NIVEL;
+  }
+
+
+  avanzar() {
+    this.datosCapturados.emit({
+      nombreHospital: this.nombreHospital,
+      tipoInsumo: this.tiposInsumoSeleccionados.join(', '),
+      periodo: this.periodoFormateado,
+      hospital: this.selectedHospital,
+      fechaInicio: this.fechaInicio,
+      fechaFin: this.fechaFin,
+      tipoPedido: this.tipoPedido,
+      responsableCaptura: this.responsableCaptura,
+    });
+    this.irASolicitud.emit();
+  }
+
+  onInputHospital(query: string) {
+    if ((query || '').length < 3) {
+      this.autocompleteHospitales = [];
+      this.selectedIndex = 0;
+      return;
+    }
+    const primerNivel = this.estaEnModoCapturaPrimerNivel();
+    this.autocompleteHospitales = this.unidadesSvc.searchLocal(query, { primerNivel, limit: 12 });
+  }
+
+  selectHospital(hospital: any) {
+    this.selectedHospital = hospital;
+    this.nombreHospital = hospital.nombre;
+    this.autocompleteHospitales = [];
+
+
+    if (this.esValido) {
+      // Envía los datos capturados si cambia de hospital con el formulario válido
+      this.datosCapturados.emit({
+        nombreHospital: this.nombreHospital,
+        tipoInsumo: this.tiposInsumoSeleccionados.join(', '),
+        periodo: this.periodoFormateado,
+        hospital: this.selectedHospital,
+        fechaInicio: this.fechaInicio,
+        fechaFin: this.fechaFin,
+        tipoPedido: this.tipoPedido,
+        responsableCaptura: this.responsableCaptura,
+      });
+    }
+  }
+
+  onHospitalKeyDown(event: KeyboardEvent) {
+    const len = this.autocompleteHospitales.length;
+
+    if (event.key === 'ArrowDown') {
+      this.selectedIndex = (this.selectedIndex + 1) % len;
+      event.preventDefault();
+    }
+
+    if (event.key === 'ArrowUp') {
+      this.selectedIndex = (this.selectedIndex - 1 + len) % len;
+      event.preventDefault();
+    }
+
+    if (event.key === 'Enter' && this.selectedIndex >= 0) {
+      this.selectHospital(this.autocompleteHospitales[this.selectedIndex]);
+      event.preventDefault();
+    }
+  }
+
+  onPeriodoSeleccionado(texto: string, fechaInicio: Date, fechaFin: Date, valido?: boolean) {
+    this.periodoFormateado = texto;
+    this.fechaInicio = fechaInicio;
+    this.fechaFin = fechaFin;
+    this.periodoValido = valido !== false; // si el hijo no manda 'valido', asumimos true
+    this.avisoPeriodo = this.periodoValido ? undefined : 'El periodo no puede incluir fechas en el pasado.';
+  }
+
+  get esValido(): boolean {
+    return !!(
+      this.selectedHospital &&
+      this.tiposInsumoSeleccionados.length > 0 &&
+      this.periodoFormateado &&
+      this.periodoValido
+    );
+  }
+
+}

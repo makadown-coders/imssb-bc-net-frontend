@@ -1,0 +1,200 @@
+// src/app/shared/periodo-fechas.service.ts
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PeriodoFechasService {
+  /**
+     * Asegura que fecha1 sea la menor y fecha2 la mayor.
+     */
+  ordenarFechas(fecha1: Date, fecha2: Date): [Date, Date] {
+    return fecha1.getTime() <= fecha2.getTime()
+      ? [fecha1, fecha2]
+      : [fecha2, fecha1];
+  }
+
+  /**
+   * Formatea el rango como "01-30 ABRIL 2025" o "30 ABRIL 2025 - 05 MAYO 2025"
+   */
+  formatearRango(inicio: Date, fin: Date): string {
+    const f = (d: Date) => ({
+      dia: d.getDate().toString().padStart(2, '0'),
+      mes: d.toLocaleString('es-MX', { month: 'long' }).toUpperCase(),
+      anio: d.getFullYear()
+    });
+
+    const ini = f(inicio);
+    const finF = f(fin);
+
+    if (ini.mes === finF.mes && ini.anio === finF.anio) {
+      return `${ini.dia}-${finF.dia} ${ini.mes} ${ini.anio}`;
+    } else {
+      return `${ini.dia} ${ini.mes} ${ini.anio} - ${finF.dia} ${finF.mes} ${finF.anio}`;
+    }
+  }
+
+  fechaEnRango(fechaTexto: string | null, inicio: Date, fin: Date): boolean {
+    if (!fechaTexto || fechaTexto.trim().length === 0) return false;
+
+    return fechaTexto.split('/')
+      .map(f => new Date(f.trim()))
+      .some(fecha => {
+        return !isNaN(fecha.getTime()) && fecha >= inicio && fecha <= fin;
+      });
+  }
+
+
+  excelDateToJSDate(serial: number): Date {
+    try {
+      const daysSince1900 = serial - 1; // Ajuste porque el 1 de enero de 1900 es el día 1
+      const date = new Date(1900, 0, daysSince1900);
+      return date;
+    } catch (error) {
+      console.error('Error al convertir la fecha:', error);
+      console.error('Serial:', serial);
+      throw error;
+    }
+  }
+
+  /**
+  * Convierte una fecha en formato de serial de Excel a un string en formato ISO (YYYY-MM-DD).
+  * Si la entrada es null o ya se encuentra en formato ISO, se devuelve la entrada sin cambios.
+  * @param serial Fecha en formato de serial de Excel
+  * @returns string | null
+  */
+  excelDateToDatestring(serial: string | null): string | null {
+    try {
+      if (!serial) return null;
+      if ((serial + '').includes('-') || (serial + '').includes('/')) return serial;
+      const jsDate = this.excelDateToJSDate(+serial);
+
+      const day = String(jsDate.getDate()).padStart(2, '0');
+      const month = String(jsDate.getMonth() + 1).padStart(2, '0'); // Los meses en JavaScript son 0-indexados
+      const year = jsDate.getFullYear();
+
+      const dateString = `${year}-${month}-${day}`;
+      return !dateString.includes('NaN-NaN-NaN') ? dateString : null;
+    } catch (error) {
+      console.error('Error al convertir la fecha (excelDateToDatestring):', error);
+      console.error('Serial:', serial);
+      throw error;
+    }
+  }
+
+  /**
+  * Convierte una cadena con fechas separadas por guiones o slashes a una cadena con fechas en formato ISO (yyyy-mm-dd)
+  * separadas por slashes.
+  * @example '01-01-2022 02-02-2023' -> '2022-01-01/2023-02-02'
+  * @example '01/01/2022' -> '2022-01-01'
+  * @example '01-02-03' -> null (no cumple el formato)
+  * @example '01-02-2023 03-04-2024' -> null (no cumple el formato)
+  * @example null -> null
+  * @param input Cadena con fechas separadas por guiones o slashes
+  * @returns string | null
+  */
+  formatFechaMultiple(input: string | null | undefined): string | null {
+    if (!input) return null;
+
+    // Elimina espacios en blanco
+    const cleaned = input.toString().replace(/\s+/g, '');
+
+    // Divide por guiones o slashes
+    const partes = cleaned.split(/[-/]/);
+
+    const fechas: string[] = [];
+    for (let i = 0; i < partes.length; i += 3) {
+      if (partes[i] && partes[i + 1] && partes[i + 2]) {
+        const dia = partes[i];
+        const mes = partes[i + 1];
+        const anio = partes[i + 2];
+
+        if (/^\d{2}$/.test(dia) && /^\d{2}$/.test(mes) && /^\d{4}$/.test(anio)) {
+          fechas.push(`${anio}-${mes}-${dia}`); // yyyy-mm-dd
+        }
+      }
+    }
+
+    return fechas.length > 0 ? fechas.join('/').replace('NaN-NaN-NaN', '') : null;
+  }
+
+  /**
+   * Convierte una fecha en formato de serial de Excel a un objeto Date.
+   * Usado para evitar errores de timezone al obtener fechas UTC.
+   * @param dateStr Fecha en formato de serial de Excel
+   * @returns Date
+   */
+  public parseLocalDate(dateStr: string): Date {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day); // Mes se indexa desde 0
+  }
+
+  /**
+   * Método que recibe dos fechas e indica los dias que hay entre ellas
+   * @param fecha1
+   * @param fecha2
+   * @returns number
+   */
+  public getDiasEntreFechas(fecha1: Date, fecha2: Date): number {
+    // const diffTime = Math.abs(fecha2.getTime() - fecha1.getTime());
+    const diffTime = fecha1.getTime() - fecha2.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  toDateOnly(d: Date | null): Date | null {
+    if (!d) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  private today(allowToday: boolean): Date {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    if (allowToday) return t;
+    // futuro estricto: a partir de mañana
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+  }
+
+  /** true si alguna fecha del rango está en pasado; falso si es válido (hoy/futuro) */
+  rangeContainsPast(fi: Date | null, ff: Date | null, allowToday = true): boolean {
+    if (!fi || !ff) return true; // rango incompleto => inválido
+    const t = this.today(allowToday);
+    const s = this.toDateOnly(fi)!;
+    const e = this.toDateOnly(ff)!;
+    // inválido si cualquiera está antes de t
+    return s < t || e < t;
+  }
+
+  toDateOrNull(value: any): Date | null {
+    if (!value) return null;
+
+    // Ya es Date
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'string') {
+      const s = value.trim();
+      if (!s) return null;
+
+      // 🧠 Caso 1: viene como ISO con T y Z → usar Date nativa
+      if (s.includes('T')) {
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return null;
+
+        // Opcional: normalizar a “solo fecha”, para evitar off-by-one por huso horario
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+
+      // 🧠 Caso 2: viene como 'YYYY-MM-DD' o similar “local”
+      // aquí sí tiene sentido usar tu fechasService
+      const d = this.parseLocalDate(s);
+      if (d && !isNaN(d.getTime())) return d;
+
+      // fallback final
+      const d2 = new Date(s);
+      return isNaN(d2.getTime()) ? null : d2;
+    }
+    return null;
+  }
+
+}

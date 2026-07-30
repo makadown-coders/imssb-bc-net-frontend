@@ -1,52 +1,87 @@
 <section class="catalogos-page">
   <header class="catalogos-header">
     <div>
+      <p class="eyebrow">Administración</p>
       <h1>Catálogos administrativos</h1>
       <p>{{ definition().description }}</p>
     </div>
   </header>
 
-  <mat-tab-group [selectedIndex]="activeIndex()" (selectedIndexChange)="onTabChange($event)">
-    @for (catalog of definitions; track catalog.key) {
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <span class="tab-label">
-            <mat-icon>{{ catalog.icon }}</mat-icon>
-            <span>{{ catalog.label }}</span>
-          </span>
-        </ng-template>
-      </mat-tab>
+  <nav class="catalog-tabs" aria-label="Catálogos">
+    @for (catalog of definitions; track catalog.key; let i = $index) {
+      <button
+        type="button"
+        class="catalog-tab"
+        [class.active]="activeIndex() === i"
+        (click)="onTabChange(i)">
+        <span class="tab-icon">
+          <ng-icon [name]="catalog.icon" />
+        </span>
+        <span class="tab-copy">
+          <span class="tab-title">{{ catalog.label }}</span>
+          <span class="tab-description">{{ catalog.shortDescription }}</span>
+        </span>
+      </button>
     }
-  </mat-tab-group>
+  </nav>
 
   <div class="catalogos-workspace">
     <section class="table-panel" aria-label="Registros del catálogo">
       <div class="table-toolbar">
         @if (definition().searchPlaceholder) {
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>{{ definition().searchPlaceholder }}</mat-label>
-            <mat-icon matPrefix>search</mat-icon>
-            <input matInput type="search" [value]="q()" (input)="search($any($event.target).value)" />
-          </mat-form-field>
+          <input hlmInput type="search" [placeholder]="definition().searchPlaceholder" [value]="q()" (input)="search($any($event.target).value)" />
         }
 
         <div class="toolbar-actions">
-          <button mat-flat-button color="primary" type="button" (click)="startCreate()">
-            <mat-icon>add</mat-icon>
-            <span>{{ definition().addLabel }}</span>
+          <button hlmBtn type="button" (click)="startCreate()">
+            <ng-icon name="lucidePlus" />
+            {{ definition().addLabel }}
           </button>
-          <button mat-icon-button type="button" aria-label="Recargar" (click)="loadRows()">
-            <mat-icon>refresh</mat-icon>
+
+          <button hlmBtn variant="outline" size="icon" type="button" aria-label="Recargar" (click)="loadRows()">
+            <ng-icon name="lucideRefreshCw" />
           </button>
         </div>
       </div>
 
       @if (loading()) {
         <div class="loading-state">
-          <mat-spinner diameter="32" />
+          <div class="state-card">
+            <span class="state-icon loading-icon">
+              <ng-icon [name]="definition().icon" />
+            </span>
+            <div class="state-copy">
+              <p class="state-eyebrow">Cargando catálogo</p>
+              <h3>{{ definition().label }}</h3>
+              <p>Estamos preparando los registros y sincronizando la información disponible.</p>
+            </div>
+            <div class="state-loader">
+              <hlm-spinner />
+            </div>
+            <div class="state-skeleton" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
         </div>
       } @else if (rows().length === 0) {
-        <div class="empty-state">Sin registros.</div>
+        <div class="empty-state">
+          <div class="state-card is-empty">
+            <span class="state-icon">
+              <ng-icon [name]="definition().icon" />
+            </span>
+            <div class="state-copy">
+              <p class="state-eyebrow">Sin registros</p>
+              <h3>{{ definition().label }}</h3>
+              <p>No encontramos elementos capturados para este catálogo. Puedes agregar el primero cuando gustes.</p>
+            </div>
+            <button hlmBtn type="button" (click)="startCreate()">
+              <ng-icon name="lucidePlus" />
+              {{ definition().addLabel }}
+            </button>
+          </div>
+        </div>
       } @else {
         <div class="table-scroll">
           <table>
@@ -65,41 +100,32 @@
                     <td>
                       @switch (column.type) {
                         @case ('boolean') {
-                          <span class="status-pill" [class.is-off]="!value(row, column)">
-                            {{ value(row, column) ? 'Sí' : 'No' }}
-                          </span>
+                          <span class="status-pill" [class.is-off]="!value(row, column)">{{ value(row, column) ? 'Sí' : 'No' }}</span>
                         }
                         @case ('date') {
-                          {{ dateValue(row, column) | date: 'medium' }}
+                          <span>{{ dateValue(row, column) | date: 'medium' }}</span>
                         }
                         @default {
                           @if (definition().key === 'unidades-medicas' && column.key === 'nombre') {
                             <div class="unit-name-cell">
-                              <button
-                                mat-icon-button
-                                type="button"
-                                aria-label="Abrir unidad en Google Maps"
-                                matTooltip="Abrir en Google Maps"
-                                [disabled]="!hasMapCoordinates(row)"
-                                (click)="openMap(row)"
-                              >
-                                <mat-icon>map</mat-icon>
+                              <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Abrir unidad en Google Maps" [disabled]="!hasMapCoordinates(row)" (click)="openMap(row)">
+                                <ng-icon name="lucideMapPin" />
                               </button>
                               <span>{{ value(row, column) || '—' }}</span>
                             </div>
                           } @else {
-                            {{ value(row, column) || '—' }}
+                            <span>{{ value(row, column) || '—' }}</span>
                           }
                         }
                       }
                     </td>
                   }
                   <td class="row-actions">
-                    <button mat-icon-button type="button" aria-label="Editar" (click)="edit(row)">
-                      <mat-icon>edit</mat-icon>
+                    <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Editar" (click)="edit(row)">
+                      <ng-icon name="lucidePencil" />
                     </button>
-                    <button mat-icon-button type="button" aria-label="Eliminar" (click)="remove(row)">
-                      <mat-icon>delete</mat-icon>
+                    <button hlmBtn variant="ghost" size="icon" type="button" aria-label="Eliminar" (click)="remove(row)">
+                      <ng-icon name="lucideTrash2" />
                     </button>
                   </td>
                 </tr>
@@ -109,6 +135,5 @@
         </div>
       }
     </section>
-
   </div>
 </section>

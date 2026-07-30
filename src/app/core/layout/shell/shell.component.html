@@ -1,21 +1,141 @@
 @if (showNavigation()) {
-<mat-toolbar color="primary" class="app-toolbar">
-  <div class="brand-block">
-    <span class="brand-line"><img alt="IMSS Bienestar" class="ml-auto h-10 md:h-12" src="imssb-logo-blanco.png"></span>
-    @if (authStore.currentUser(); as user) {<span class="welcome-text">Bienvenido, {{ user.email }}</span>}
-  </div>
-  <button mat-icon-button class="menu-toggle" type="button" aria-label="Abrir menú principal" aria-controls="main-navigation" [attr.aria-expanded]="mobileNavigationOpen()" (click)="toggleNavigation()">
-    <mat-icon>{{ mobileNavigationOpen() ? 'close' : 'menu' }}</mat-icon>
-  </button>
-  <nav id="main-navigation" class="app-nav" [class.is-open]="mobileNavigationOpen()" aria-label="Principal">
-    <a mat-button routerLink="/dashboard" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>dashboard</mat-icon>Dashboard</a>
-    @if (isAdminTic()) {
-      <a mat-button routerLink="/catalogos" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>list_alt</mat-icon>Catálogos</a>
-      <a mat-button routerLink="/personas" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>groups</mat-icon>Personas</a>
-      <a mat-button routerLink="/usuarios" routerLinkActive="is-active" (click)="closeNavigation()"><mat-icon>manage_accounts</mat-icon>Usuarios</a>
+  <div class="shell-container">
+    @if (isMobile() && mobileNavigationOpen()) {
+      <button
+        class="sidebar-backdrop"
+        type="button"
+        aria-label="Cerrar menú"
+        (click)="closeNavigation()"
+      ></button>
     }
-  </nav>
-</mat-toolbar>
+    <aside
+      class="app-sidebar"
+      [class.is-open]="!isMobile() || mobileNavigationOpen()"
+      aria-label="Navegación principal"
+    >
+      <div class="sidebar-brand">
+        <img src="imssb-logo-blanco.png" alt="IMSS Bienestar" /><button
+          hlmBtn
+          variant="ghost"
+          size="icon"
+          type="button"
+          class="sidebar-close"
+          aria-label="Cerrar menú principal"
+          (click)="closeNavigation()"
+        >
+          <ng-icon name="lucideX" />
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <a
+          class="nav-link root-link"
+          routerLink="/dashboard"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="closeNavigation()"
+          ><ng-icon name="lucideLayoutDashboard" /><span>Dashboard</span></a
+        >
+        @if (canAccessUnidadesMedicas()) {
+          <!-- Pendiente por implementar rutas y componentes -->
+          <section
+            class="nav-section"
+            aria-labelledby="requests-title"
+          >
+            <h2 id="requests-title" class="section-title">Proyectos en Salud</h2>
+            <a
+              class="nav-link"
+              routerLink="/homologos-config"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+              ><ng-icon name="lucideSettings2" /><span>Relaciones de sustitución</span>
+            </a>
+            @if (isIBOnco() || isAdminTic()) {
+              <a
+                class="nav-link"
+                routerLink="/ib-onco"
+                routerLinkActive="is-active"
+                (click)="closeNavigation()"
+              >
+                <ng-icon name="lucideClipboardList" />
+                <span>IB Onco</span>
+              </a>
+            }
+          </section>
+        }
+        @if (canAccessSolicitudes()) {
+          <section
+            class="nav-section"
+            [class.section-active]="isAbastoRoute()"
+            aria-labelledby="requests-title"
+          >
+            <h2 id="requests-title" class="section-title">Solicitudes</h2>
+            <a
+              class="nav-link"
+              routerLink="/solicitudes"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+            >
+              <ng-icon name="lucideClipboardList" />
+              <span>Solicitudes (2do nivel)</span>
+            </a>
+            @if (isAdminTic()) {
+              <a
+                class="nav-link"
+                routerLink="/solicitudes-config"
+                routerLinkActive="is-active"
+                (click)="closeNavigation()"
+                ><ng-icon name="lucideSettings2" /><span>Configuración</span></a
+              >
+            }
+          </section>
+        }
+        @if (isAdminTic()) {
+          <section class="nav-section" aria-labelledby="admin-title">
+            <h2 id="admin-title" class="section-title">Administración</h2>
+            <a
+              class="nav-link"
+              routerLink="/catalogos"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+              ><ng-icon name="lucideListTree" /><span>Catálogos</span></a
+            ><a
+              class="nav-link"
+              routerLink="/personas"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+              ><ng-icon name="lucideUsers" /><span>Personas</span></a
+            ><a
+              class="nav-link"
+              routerLink="/usuarios"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+              ><ng-icon name="lucideUserCog" /><span>Usuarios</span></a
+            >
+          </section>
+        }
+      </nav>
+    </aside>
+    <section class="shell-content">
+      <header class="app-toolbar">
+        <button
+          hlmBtn
+          variant="ghost"
+          size="icon"
+          class="menu-toggle"
+          type="button"
+          aria-label="Abrir menú principal"
+          [attr.aria-expanded]="mobileNavigationOpen()"
+          (click)="toggleNavigation()"
+        >
+          <ng-icon name="lucideMenu" /></button
+        ><img class="mobile-logo" src="imssb-logo-blanco.png" alt="IMSS Bienestar" />
+        @if (authStore.currentUser(); as user) {
+          <span class="welcome-text">Bienvenido, {{ user.email }}</span>
+        }
+      </header>
+      <main class="app-main"><router-outlet /></main>
+    </section>
+  </div>
+} @else {
+  <main class="app-main login-main"><router-outlet /></main>
 }
-
-<main class="app-main" [class.login-main]="!showNavigation()"><router-outlet /></main>

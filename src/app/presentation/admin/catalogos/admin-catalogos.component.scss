@@ -14,8 +14,24 @@
 
 h1,
 h2,
+p,
+h3 {
+  margin: 0;
+}
+
+h1,
+h2,
 p {
   margin: 0;
+}
+
+.eyebrow {
+  margin-bottom: 0.4rem;
+  color: #9a6b17;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 h1 {
@@ -29,47 +45,109 @@ h2 {
   color: var(--imssb-green-900);
 }
 
-.catalogos-header p {
+.catalogos-header p:not(.eyebrow) {
   margin-top: 0.35rem;
   color: var(--imssb-muted);
 }
 
-.tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+.catalog-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
 }
 
-.tab-label mat-icon {
-  color: var(--imssb-green-700);
-  font-size: 20px;
-  height: 20px;
-  width: 20px;
+.catalog-tab {
+  position: relative;
+  display: flex;
+  min-height: 92px;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  border: 1px solid rgba(0, 61, 42, 0.10);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 249, 246, 0.98) 100%);
+  padding: 1rem;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 61, 42, 0.06);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background-color .16s ease;
 }
 
-button {
+.catalog-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 105, 62, 0.22);
+  box-shadow: 0 16px 28px rgba(0, 61, 42, 0.10);
+}
+
+.catalog-tab.active {
+  border-color: rgba(0, 105, 62, 0.45);
+  background: radial-gradient(circle at top right, rgba(198, 156, 50, 0.18), transparent 42%), linear-gradient(180deg, rgba(238, 247, 242, 1) 0%, rgba(226, 242, 234, 1) 100%);
+  box-shadow: 0 18px 34px rgba(0, 61, 42, 0.14);
+}
+
+.catalog-tab.active::after {
+  content: '';
+  position: absolute;
+  inset: auto 16px 0 16px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00693e 0%, #c69c32 100%);
+}
+
+.tab-icon {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(0, 105, 62, 0.10);
+  color: #00693e;
+}
+
+.tab-icon ng-icon {
+  font-size: 1.25rem;
+}
+
+.catalog-tab.active .tab-icon {
+  background: rgba(0, 105, 62, 0.18);
+  color: #005736;
+}
+
+.tab-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tab-title {
+  color: #16372b;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.tab-description {
+  color: #65756a;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .catalogos-workspace {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  margin-top: 1rem;
   align-items: start;
 }
 
 .table-panel {
+  min-width: 0;
   border: 1px solid var(--imssb-line);
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--imssb-surface-raised);
   box-shadow: 0 12px 30px rgba(0, 61, 42, 0.08);
-}
-
-.table-panel {
-  min-width: 0;
+  overflow: hidden;
 }
 
 .table-toolbar {
@@ -82,8 +160,10 @@ button {
   background: linear-gradient(180deg, #ffffff, #f8fbf9);
 }
 
-.table-toolbar mat-form-field {
+.table-toolbar input {
   width: min(420px, 100%);
+  min-height: 2.75rem;
+  border-radius: 10px;
 }
 
 .toolbar-actions {
@@ -180,12 +260,129 @@ tbody tr.is-selected {
   min-height: 260px;
   display: grid;
   place-items: center;
+  padding: 1.4rem;
   color: var(--imssb-muted);
 }
 
+.state-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  width: min(100%, 560px);
+  border: 1px dashed rgba(0, 61, 42, 0.16);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(198, 156, 50, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 250, 247, 0.98) 100%);
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.state-card.is-empty {
+  gap: 1rem;
+}
+
+.state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  background: rgba(0, 105, 62, 0.10);
+  color: #00693e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.state-icon ng-icon {
+  font-size: 1.8rem;
+}
+
+.loading-icon {
+  animation: float 1.8s ease-in-out infinite;
+}
+
+.state-copy {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 420px;
+}
+
+.state-eyebrow {
+  color: #9a6b17;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.state-copy h3 {
+  color: var(--imssb-green-900);
+  font-size: 1.15rem;
+}
+
+.state-copy p:not(.state-eyebrow) {
+  color: var(--imssb-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.state-loader {
+  display: grid;
+  place-items: center;
+  min-height: 1.5rem;
+}
+
+.state-skeleton {
+  display: grid;
+  gap: 0.55rem;
+  width: min(100%, 360px);
+}
+
+.state-skeleton span {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 105, 62, 0.08) 0%, rgba(0, 105, 62, 0.18) 50%, rgba(0, 105, 62, 0.08) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.state-skeleton span:nth-child(1) {
+  width: 100%;
+}
+
+.state-skeleton span:nth-child(2) {
+  width: 78%;
+  justify-self: center;
+}
+
+.state-skeleton span:nth-child(3) {
+  width: 56%;
+  justify-self: center;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 @media (max-width: 980px) {
-  .catalogos-workspace {
-    grid-template-columns: 1fr;
+  .catalog-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -200,16 +397,26 @@ tbody tr.is-selected {
     flex-direction: column;
   }
 
+  .catalog-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-tab {
+    min-height: 84px;
+  }
+
   .toolbar-actions {
     width: 100%;
     justify-content: space-between;
     margin-left: 0;
   }
 
-  .catalogos-header button,
-  .toolbar-actions button[mat-flat-button],
-  .toolbar-actions button[mat-flat-button] {
+  .toolbar-actions button {
     width: 100%;
     justify-content: center;
+  }
+
+  .state-card {
+    padding: 1.4rem 1.1rem;
   }
 }

@@ -1,17 +1,9 @@
-<h2 mat-dialog-title>{{ data.persona ? 'Editar persona' : 'Nueva persona' }}</h2>
-
-<mat-dialog-content>
+<header class="dialog-header"><h2>{{ data.persona ? 'Editar persona' : 'Nueva persona' }}</h2></header>
 <div [formGroup]="form" class="form-grid">
-  <mat-form-field appearance="outline"><mat-label>Nombres</mat-label><input matInput formControlName="nombres" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Apellidos</mat-label><input matInput formControlName="apellidos" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Cargo</mat-label><input matInput formControlName="cargo" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Unidad médica</mat-label><input matInput [formControl]="unidadSeleccionada" [matAutocomplete]="unidades" /><button mat-icon-button matSuffix type="button" aria-label="Quitar unidad médica" (click)="clearUnidad()">×</button><mat-autocomplete #unidades="matAutocomplete" [displayWith]="displayUnidad">@for (unidad of unidadesFiltradas(); track unidad.id) {<mat-option [value]="unidad">{{ unidad.nombre }}</mat-option>}@if (unidadesFiltradas().length === 0) {<mat-option disabled>Sin coincidencias</mat-option>}</mat-autocomplete></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Correo principal</mat-label><input matInput type="email" formControlName="correoPrincipal" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Username</mat-label><input matInput formControlName="username" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>RFC</mat-label><input matInput formControlName="rfc" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>CURP</mat-label><input matInput formControlName="curp" /></mat-form-field>
-  <mat-checkbox formControlName="activo">Persona activa</mat-checkbox>
+  <label class="form-field"><span hlmLabel>Nombres</span><input hlmInput formControlName="nombres" /></label><label class="form-field"><span hlmLabel>Apellidos</span><input hlmInput formControlName="apellidos" /></label>
+  <label class="form-field"><span hlmLabel>Cargo</span><input hlmInput formControlName="cargo" /></label><label class="form-field"><span hlmLabel>Unidad médica</span><select [value]="selectedUnidadId()" (change)="selectUnidad($any($event.target).value)"><option value="">Sin asignar</option>@for (unidad of data.unidadesMedicas; track unidad.id) {<option [value]="unidad.id">{{ unidad.nombre }}</option>}</select></label>
+  <label class="form-field"><span hlmLabel>Correo principal</span><input hlmInput type="email" formControlName="correoPrincipal" /></label><label class="form-field"><span hlmLabel>Username</span><input hlmInput formControlName="username" /></label>
+  <label class="form-field"><span hlmLabel>RFC</span><input hlmInput formControlName="rfc" /></label><label class="form-field"><span hlmLabel>CURP</span><input hlmInput formControlName="curp" /></label>
+  <label class="checkbox-field"><hlm-checkbox formControlName="activo" />Persona activa</label>
 </div>
-</mat-dialog-content>
-
-<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Guardar</button></mat-dialog-actions>
+<footer class="dialog-actions"><button hlmBtn variant="ghost" type="button" (click)="cancel()">Cancelar</button><button hlmBtn type="button" (click)="save()">Guardar</button></footer>
