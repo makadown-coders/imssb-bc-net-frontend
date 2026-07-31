@@ -1,0 +1,174 @@
+<main class="sicilia-page">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">IB-ONCO · Administración clínica</p>
+      <h1>Catálogo Sicilia</h1>
+      <p class="hero-copy">Mantén las clases y subclases utilizadas en la operación oncológica.</p>
+    </div>
+    <div class="hero-mark" aria-hidden="true"><ng-icon name="lucideBoxes" /></div>
+  </header>
+
+  <nav class="catalog-tabs" aria-label="Catálogos Sicilia">
+    <button type="button" [class.active]="tipo() === 'clases'" (click)="selectTipo('clases')">
+      <span class="tab-icon"><ng-icon name="lucideLayers3" /></span>
+      <span><strong>Clases</strong><small>Prioridad y factor de stock</small></span>
+    </button>
+    <button type="button" [class.active]="tipo() === 'subclases'" (click)="selectTipo('subclases')">
+      <span class="tab-icon"><ng-icon name="lucideBoxes" /></span>
+      <span><strong>Subclases</strong><small>Catálogo clínico independiente</small></span>
+    </button>
+  </nav>
+
+  <section class="workspace" aria-labelledby="catalog-title">
+    <div class="workspace-head">
+      <div>
+        <h2 id="catalog-title">{{ title() }}</h2>
+        <p>{{ subtitle() }}</p>
+      </div>
+      <button class="btn primary" type="button" (click)="openCreate()">
+        <ng-icon name="lucidePlus" /> Nueva {{ tipo() === 'clases' ? 'clase' : 'subclase' }}
+      </button>
+    </div>
+
+    <form class="filters" (ngSubmit)="submitSearch()">
+      <label class="search-box">
+        <span class="sr-only">Buscar por código, nombre o descripción</span>
+        <ng-icon name="lucideSearch" />
+        <input type="search" placeholder="Buscar por código, nombre o descripción" [value]="query()" (input)="setQuery($any($event.target).value)" />
+      </label>
+      <label>
+        <span class="sr-only">Filtrar por estado</span>
+        <select [value]="estado()" (change)="setEstado($any($event.target).value)">
+          <option value="activos">Activos</option>
+          <option value="inactivos">Inactivos</option>
+          <option value="todos">Todos</option>
+        </select>
+      </label>
+      <button class="btn secondary" type="submit">Buscar</button>
+      <button class="icon-btn" type="button" aria-label="Recargar catálogo" (click)="load()">
+        <ng-icon name="lucideRefreshCw" />
+      </button>
+    </form>
+
+    @if (loading()) {
+      <div class="state"><span class="loader"></span><strong>Cargando {{ title().toLowerCase() }}…</strong></div>
+    } @else if (rows().length === 0) {
+      <div class="state empty">
+        <ng-icon name="lucideArchive" />
+        <strong>No encontramos registros</strong>
+        <p>Ajusta los filtros o captura el primer elemento del catálogo.</p>
+      </div>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              @if (tipo() === 'clases') { <th>Factor de stock</th> }
+              <th>Estado</th>
+              <th class="actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <td><span class="code-pill">{{ row.codigo }}</span></td>
+                <td class="name-cell">{{ row.nombre }}</td>
+                <td class="description-cell">{{ row.descripcion || 'Sin descripción' }}</td>
+                @if (tipo() === 'clases') {
+                  <td>{{ isClase(row) && row.stockFactor !== null ? (row.stockFactor | number: '1.0-2') : '—' }}</td>
+                }
+                <td><span class="status" [class.inactive]="!row.activo">{{ row.activo ? 'Activo' : 'Inactivo' }}</span></td>
+                <td class="row-actions">
+                  <button class="icon-btn" type="button" [attr.aria-label]="'Editar ' + row.codigo" (click)="openEdit(row)">
+                    <ng-icon name="lucidePencil" />
+                  </button>
+                  @if (row.activo) {
+                    <button class="icon-btn danger" type="button" [attr.aria-label]="'Desactivar ' + row.codigo" (click)="requestDeactivate(row)">
+                      <ng-icon name="lucideArchive" />
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer class="pagination">
+        <p>Mostrando {{ showingFrom() }}–{{ showingTo() }} de {{ total() }}</p>
+        <div>
+          <button class="icon-btn" type="button" aria-label="Página anterior" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">
+            <ng-icon name="lucideChevronLeft" />
+          </button>
+          <span>Página <strong>{{ page() }}</strong> de {{ totalPages() || 1 }}</span>
+          <button class="icon-btn" type="button" aria-label="Página siguiente" [disabled]="page() >= totalPages()" (click)="goToPage(page() + 1)">
+            <ng-icon name="lucideChevronRight" />
+          </button>
+        </div>
+      </footer>
+    }
+  </section>
+</main>
+
+@if (formOpen()) {
+  <div class="overlay" (click)="$event.target === $event.currentTarget && closeForm()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="sicilia-form-title">
+      <header>
+        <div>
+          <p class="eyebrow">{{ editing() ? 'Editar registro' : 'Nueva captura' }}</p>
+          <h2 id="sicilia-form-title">{{ editing() ? 'Actualizar' : 'Crear' }} {{ tipo() === 'clases' ? 'clase' : 'subclase' }}</h2>
+        </div>
+        <button class="icon-btn" type="button" aria-label="Cerrar formulario" [disabled]="saving()" (click)="closeForm()"><ng-icon name="lucideX" /></button>
+      </header>
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        @if (formMessage(); as message) {
+          <div class="form-alert" role="alert">{{ message }}</div>
+        }
+        <div class="form-grid">
+          <label>
+            <span>Código <b>*</b></span>
+            <input type="text" formControlName="codigo" [maxlength]="tipo() === 'clases' ? 10 : 20" />
+            @if (fieldError('codigo'); as error) { <small class="field-error">{{ error }}</small> }
+          </label>
+          <label>
+            <span>Nombre <b>*</b></span>
+            <input type="text" formControlName="nombre" [maxlength]="tipo() === 'clases' ? 100 : 150" />
+            @if (fieldError('nombre'); as error) { <small class="field-error">{{ error }}</small> }
+          </label>
+          @if (tipo() === 'clases') {
+            <label>
+              <span>Factor de stock</span>
+              <input type="number" min="0" step="0.01" formControlName="stockFactor" />
+              @if (fieldError('stockFactor'); as error) { <small class="field-error">{{ error }}</small> }
+            </label>
+          }
+          <label class="wide">
+            <span>Descripción</span>
+            <textarea rows="4" formControlName="descripcion"></textarea>
+          </label>
+          <label class="check wide"><input type="checkbox" formControlName="activo" /><span>Registro activo</span></label>
+        </div>
+        <footer>
+          <button class="btn secondary" type="button" [disabled]="saving()" (click)="closeForm()">Cancelar</button>
+          <button class="btn primary" type="button" [disabled]="saving()" (click)="save()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (deactivateTarget(); as target) {
+  <div class="overlay">
+    <section class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="deactivate-title">
+      <div class="confirm-icon"><ng-icon name="lucideArchive" /></div>
+      <h2 id="deactivate-title">Desactivar {{ target.codigo }}</h2>
+      <p>El registro dejará de aparecer entre los activos, pero conservará su historial y podrá editarse posteriormente.</p>
+      <footer>
+        <button class="btn secondary" type="button" [disabled]="saving()" (click)="cancelDeactivate()">Cancelar</button>
+        <button class="btn danger-solid" type="button" [disabled]="saving()" (click)="confirmDeactivate()">{{ saving() ? 'Desactivando…' : 'Desactivar' }}</button>
+      </footer>
+    </section>
+  </div>
+}

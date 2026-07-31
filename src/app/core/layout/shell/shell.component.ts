@@ -2,7 +2,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX } from '@ng-icons/lucide';
+import { lucideBookOpen, lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX } from '@ng-icons/lucide';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { filter } from 'rxjs';
@@ -13,7 +13,7 @@ import { hasTokenRole } from '../../auth/jwt-claims';
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, HlmButton],
-  providers: [provideIcons({ lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX })],
+  providers: [provideIcons({ lucideBookOpen, lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX })],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
