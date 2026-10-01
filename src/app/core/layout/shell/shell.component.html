@@ -49,6 +49,12 @@
               (click)="closeNavigation()"
               ><ng-icon name="lucideSettings2" /><span>Relaciones de sustitución</span>
             </a>
+            @if (canAccessCnis()) {
+              <a class="nav-link" routerLink="/cnis/grupos-terapeuticos"
+                routerLinkActive="is-active" (click)="closeNavigation()">
+                <ng-icon name="lucideBookOpen" /><span>Grupos terapéuticos CNIS</span>
+              </a>
+            }
             @if (isIBOnco() || isAdminTic()) {
               <a
                 class="nav-link"
@@ -59,15 +65,17 @@
                 <ng-icon name="lucideClipboardList" />
                 <span>IB Onco</span>
               </a>
-              <a
-                class="nav-link"
-                routerLink="/ib-onco/catalogo-sicilia"
-                routerLinkActive="is-active"
-                (click)="closeNavigation()"
-              >
-                <ng-icon name="lucideBookOpen" />
-                <span>Catálogo Sicilia</span>
-              </a>
+              @if (isAdminTic()) {
+                <a
+                  class="nav-link"
+                  routerLink="/ib-onco/catalogo-sicilia"
+                  routerLinkActive="is-active"
+                  (click)="closeNavigation()"
+                >
+                  <ng-icon name="lucideBookOpen" />
+                  <span>Catálogo Sicilia</span>
+                </a>
+              }
             }
           </section>
         }

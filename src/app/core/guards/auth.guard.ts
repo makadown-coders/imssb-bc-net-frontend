@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { TokenStoragePort } from '../../infrastructure/auth/storage/token-storage.port';
+import { canReadCnis } from '../auth/cnis-access';
 import { hasTokenRole } from '../auth/jwt-claims';
 
 export const authGuard: CanActivateFn = (): boolean | UrlTree => {
@@ -24,6 +25,12 @@ export const adminTicGuard: CanActivateFn = (): boolean | UrlTree => {
   return hasTokenRole(tokenStorage.getAccessToken(), 'ADMIN_TIC')
     ? true
     : router.createUrlTree(['/dashboard']);
+};
+
+export const cnisGuard: CanActivateFn = (): boolean | UrlTree => {
+  const tokenStorage = inject(TokenStoragePort);
+  const router = inject(Router);
+  return canReadCnis(tokenStorage.getAccessToken()) ? true : router.createUrlTree(['/dashboard']);
 };
 
 const solicitudesRoles = ['SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'] as const;

@@ -8,6 +8,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { filter } from 'rxjs';
 import { AuthStore } from '../../../application/auth/state/auth.store';
 import { TokenStoragePort } from '../../../infrastructure/auth/storage/token-storage.port';
+import { canReadCnis } from '../../auth/cnis-access';
 import { hasTokenRole } from '../../auth/jwt-claims';
 
 @Component({
@@ -29,6 +30,7 @@ export class ShellComponent implements OnInit {
   readonly isAdminTic = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC'); });
   readonly isIBOnco = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'IB_ONCO'); });
   readonly canAccessUnidadesMedicas = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'UNIDAD_MEDICA', 'ADMIN_TIC', 'COORDINACION', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
+  readonly canAccessCnis = computed(() => { this.authStore.isAuthenticated(); return canReadCnis(this.tokenStorage.getAccessToken()); });
   readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'].some((role) => hasTokenRole(token, role)); });
 
   constructor(readonly authStore: AuthStore) { }
