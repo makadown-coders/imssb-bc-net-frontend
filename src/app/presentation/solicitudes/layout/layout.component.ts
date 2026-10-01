@@ -62,7 +62,7 @@ export class LayoutComponent implements OnInit, OnChanges {
   }
 
   verificarRuta() {
-    if (this.router.url === '/solicitud-unidad') {
+    if (this.router.url.startsWith('/solicitud-unidad')) {
       this.storageSolicitudService.setModoCapturaSolicitud(ModoCapturaSolicitud.PRIMER_NIVEL);
     } else {
       this.storageSolicitudService.setModoCapturaSolicitud(ModoCapturaSolicitud.SEGUNDO_NIVEL);

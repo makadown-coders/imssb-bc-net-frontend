@@ -90,10 +90,20 @@
               class="nav-link"
               routerLink="/solicitudes"
               routerLinkActive="is-active"
+              [routerLinkActiveOptions]="{ exact: true }"
               (click)="closeNavigation()"
             >
               <ng-icon name="lucideClipboardList" />
               <span>Solicitudes (2do nivel)</span>
+            </a>
+            <a
+              class="nav-link"
+              routerLink="/solicitud-unidad"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+            >
+              <ng-icon name="lucideClipboardList" />
+              <span>Solicitudes (1er nivel)</span>
             </a>
             @if (isAdminTic()) {
               <a

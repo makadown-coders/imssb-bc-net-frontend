@@ -33,7 +33,15 @@ export const cnisGuard: CanActivateFn = (): boolean | UrlTree => {
   return canReadCnis(tokenStorage.getAccessToken()) ? true : router.createUrlTree(['/dashboard']);
 };
 
-const solicitudesRoles = ['SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'] as const;
+const solicitudesRoles = [
+  'IB_ONCO',
+  'SOLICITUDES_ABASTO',
+  'ADMIN_TIC',
+  'COORDINACION',
+  'ABASTO',
+  'UNIDAD_MEDICA',
+  'ENFERMERIA',
+] as const;
 
 export const solicitudesGuard: CanActivateFn = (): boolean | UrlTree => {
   const tokenStorage = inject(TokenStoragePort);

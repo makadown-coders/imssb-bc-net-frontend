@@ -16,6 +16,8 @@ export const routes: Routes = [
   { path: 'ib-onco/catalogo-sicilia', loadComponent: () => import('./presentation/ib-onco/catalogo-sicilia/catalogo-sicilia.component').then((module) => module.CatalogoSiciliaComponent), canActivate: [authGuard, adminTicGuard], title: 'Catálogo Sicilia' },
   { path: 'ib-onco', loadComponent: () => import('./presentation/ib-onco/ib-onco-page.component').then((module) => module.IbOncoPageComponent), canActivate: [authGuard, ibOncoGuard], title: 'IB Onco' },
   { path: 'solicitudes', loadComponent: () => import('./presentation/solicitudes/layout/layout.component').then((module) => module.LayoutComponent), canActivate: [authGuard, solicitudesGuard], title: 'Solicitudes de abasto' },
+  { path: 'solicitud-unidad', loadComponent: () => import('./presentation/solicitudes/layout/layout.component').then((module) => module.LayoutComponent), canActivate: [authGuard, solicitudesGuard], title: 'Solicitudes de primer nivel' },
+  { path: 'solicitudes/primer-nivel', redirectTo: 'solicitud-unidad', pathMatch: 'full' },
   { path: 'solicitudes-config', loadComponent: () => import('./presentation/solicitudes-config/solicitudes-config.component').then((module) => module.SolicitudesConfigComponent), canActivate: [authGuard, adminTicGuard], title: 'Configuración de solicitudes' },
   { path: 'cambiar-contrasena', component: ChangePasswordComponent, canActivate: [authGuard] },
   { path: 'catalogos', component: AdminCatalogosComponent, canActivate: [authGuard, adminTicGuard] },

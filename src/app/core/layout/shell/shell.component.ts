@@ -31,7 +31,7 @@ export class ShellComponent implements OnInit {
   readonly isIBOnco = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'IB_ONCO'); });
   readonly canAccessUnidadesMedicas = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'UNIDAD_MEDICA', 'ADMIN_TIC', 'COORDINACION', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
   readonly canAccessCnis = computed(() => { this.authStore.isAuthenticated(); return canReadCnis(this.tokenStorage.getAccessToken()); });
-  readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'].some((role) => hasTokenRole(token, role)); });
+  readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO', 'UNIDAD_MEDICA', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
 
   constructor(readonly authStore: AuthStore) { }
 
