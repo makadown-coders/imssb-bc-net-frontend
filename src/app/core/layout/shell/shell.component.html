@@ -49,6 +49,12 @@
               (click)="closeNavigation()"
               ><ng-icon name="lucideSettings2" /><span>Relaciones de sustitución</span>
             </a>
+            @if (canAccessCnis()) {
+              <a class="nav-link" routerLink="/cnis/grupos-terapeuticos"
+                routerLinkActive="is-active" (click)="closeNavigation()">
+                <ng-icon name="lucideBookOpen" /><span>Grupos terapéuticos CNIS</span>
+              </a>
+            }
             @if (isIBOnco() || isAdminTic()) {
               <a
                 class="nav-link"
@@ -59,6 +65,17 @@
                 <ng-icon name="lucideClipboardList" />
                 <span>IB Onco</span>
               </a>
+              @if (isAdminTic()) {
+                <a
+                  class="nav-link"
+                  routerLink="/ib-onco/catalogo-sicilia"
+                  routerLinkActive="is-active"
+                  (click)="closeNavigation()"
+                >
+                  <ng-icon name="lucideBookOpen" />
+                  <span>Catálogo Sicilia</span>
+                </a>
+              }
             }
           </section>
         }
@@ -73,10 +90,20 @@
               class="nav-link"
               routerLink="/solicitudes"
               routerLinkActive="is-active"
+              [routerLinkActiveOptions]="{ exact: true }"
               (click)="closeNavigation()"
             >
               <ng-icon name="lucideClipboardList" />
               <span>Solicitudes (2do nivel)</span>
+            </a>
+            <a
+              class="nav-link"
+              routerLink="/solicitud-unidad"
+              routerLinkActive="is-active"
+              (click)="closeNavigation()"
+            >
+              <ng-icon name="lucideClipboardList" />
+              <span>Solicitudes (1er nivel)</span>
             </a>
             @if (isAdminTic()) {
               <a

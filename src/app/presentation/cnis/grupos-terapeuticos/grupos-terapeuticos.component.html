@@ -1,0 +1,76 @@
+<section class="cnis-page">
+  <header>
+    <p class="eyebrow">Proyectos en Salud</p>
+    <h1>Grupos terapéuticos CNIS</h1>
+    <p>Consulta los medicamentos asociados a los grupos disponibles en el catálogo operativo.</p>
+  </header>
+
+  <div class="panel">
+    @if (loadingGrupos()) {
+      <div class="state" role="status"><hlm-spinner /> Cargando grupos terapéuticos…</div>
+    } @else if (errorGrupos()) {
+      <div class="state error" role="alert">
+        <p>{{ errorGrupos() }}</p>
+        <button hlmBtn variant="outline" type="button" (click)="loadGrupos()">Reintentar</button>
+      </div>
+    } @else if (grupos().length === 0) {
+      <p class="state" role="status">No hay grupos terapéuticos asociados a artículos disponibles.</p>
+    } @else {
+      <div class="filters">
+        <app-searchable-select label="Grupo terapéutico" placeholder="Selecciona un grupo"
+          searchPlaceholder="Buscar por número o nombre" [options]="options()"
+          [value]="grupoNumero()" (valueChange)="selectGrupo($event)" />
+        <div class="search-field">
+          <label for="cnis-search">Buscar artículos del grupo</label>
+          <input #searchInput hlmInput id="cnis-search" type="search" placeholder="Clave o descripción"
+            [value]="search()" [disabled]="!grupo() || loadingArticulos() || !!errorArticulos()"
+            (input)="setSearch(searchInput.value)" />
+        </div>
+      </div>
+      @if (grupo(); as selected) {
+        <h2>Grupo {{ selected.numero }} — {{ selected.nombre }}</h2>
+        @if (loadingArticulos()) {
+          <div class="state" role="status"><hlm-spinner /> Cargando artículos…</div>
+        } @else if (errorArticulos()) {
+          <div class="state error" role="alert">
+            <p>{{ errorArticulos() }}</p>
+            <button hlmBtn variant="outline" type="button" (click)="retryArticulos()">Reintentar</button>
+          </div>
+        } @else if (articulos().length === 0) {
+          <p class="state" role="status">Este grupo no tiene artículos disponibles.</p>
+        } @else {
+          <p class="results" aria-live="polite">{{ filtered().length }} resultados de {{ articulos().length }} artículos del grupo.</p>
+          @if (filtered().length === 0) {
+            <div class="state" role="status">
+              <p>No hay artículos que coincidan con la búsqueda.</p>
+              <button hlmBtn variant="outline" type="button" (click)="setSearch('')">Limpiar búsqueda</button>
+            </div>
+          } @else {
+            <div class="table-scroll" role="region" aria-label="Artículos del grupo seleccionado" tabindex="0">
+              <table hlmTable>
+                <caption class="sr-only">Artículos del grupo {{ selected.numero }} — {{ selected.nombre }}</caption>
+                <thead hlmTHead><tr hlmTr>
+                  <th hlmTh scope="col">Clave</th><th hlmTh scope="col">Descripción</th><th hlmTh scope="col">Presentación</th>
+                </tr></thead>
+                <tbody hlmTBody>
+                  @for (row of rows(); track $index) {
+                    <tr hlmTr><td hlmTd class="clave">{{ row.clave }}</td><td hlmTd>{{ row.descripcion || 'Sin descripción' }}</td><td hlmTd>{{ row.presentacion || 'Sin presentación' }}</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <nav class="pagination" aria-label="Paginación de artículos">
+              <span aria-live="polite">{{ showingFrom() }}–{{ showingTo() }} de {{ filtered().length }} · Página {{ page() }} de {{ totalPages() }}</span>
+              <div>
+                <button hlmBtn variant="outline" type="button" [disabled]="page() === 1" (click)="changePage(page() - 1)">Anterior</button>
+                <button hlmBtn variant="outline" type="button" [disabled]="page() === totalPages()" (click)="changePage(page() + 1)">Siguiente</button>
+              </div>
+            </nav>
+          }
+        }
+      } @else {
+        <p class="state" role="status">Selecciona un grupo terapéutico para consultar sus medicamentos.</p>
+      }
+    }
+  </div>
+</section>

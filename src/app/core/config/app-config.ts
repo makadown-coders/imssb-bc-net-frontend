@@ -34,4 +34,9 @@ export const API_ENDPOINTS = {
   personas: '/api/personas',
   users: '/api/users',
   roles: '/api/roles',
+  cnis: {
+    grupos: '/api/cnis/grupos-terapeuticos',
+    articulosPorGrupo: (numero: number) => `/api/cnis/grupos-terapeuticos/${numero}/articulos`,
+  },
+  catalogoSicilia: '/api/ib-onco/catalogo-sicilia',
 } as const;

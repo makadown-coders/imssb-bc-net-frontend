@@ -2,18 +2,19 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX } from '@ng-icons/lucide';
+import { lucideBookOpen, lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX } from '@ng-icons/lucide';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { filter } from 'rxjs';
 import { AuthStore } from '../../../application/auth/state/auth.store';
 import { TokenStoragePort } from '../../../infrastructure/auth/storage/token-storage.port';
+import { canReadCnis } from '../../auth/cnis-access';
 import { hasTokenRole } from '../../auth/jwt-claims';
 
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, HlmButton],
-  providers: [provideIcons({ lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX })],
+  providers: [provideIcons({ lucideBookOpen, lucideClipboardList, lucideLayoutDashboard, lucideListTree, lucideMenu, lucideSettings2, lucideUserCog, lucideUsers, lucideX })],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
@@ -29,7 +30,8 @@ export class ShellComponent implements OnInit {
   readonly isAdminTic = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'ADMIN_TIC'); });
   readonly isIBOnco = computed(() => { this.authStore.isAuthenticated(); return hasTokenRole(this.tokenStorage.getAccessToken(), 'IB_ONCO'); });
   readonly canAccessUnidadesMedicas = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'UNIDAD_MEDICA', 'ADMIN_TIC', 'COORDINACION', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
-  readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO'].some((role) => hasTokenRole(token, role)); });
+  readonly canAccessCnis = computed(() => { this.authStore.isAuthenticated(); return canReadCnis(this.tokenStorage.getAccessToken()); });
+  readonly canAccessSolicitudes = computed(() => { this.authStore.isAuthenticated(); const token = this.tokenStorage.getAccessToken(); return ['IB_ONCO', 'SOLICITUDES_ABASTO', 'ADMIN_TIC', 'COORDINACION', 'ABASTO', 'UNIDAD_MEDICA', 'ENFERMERIA'].some((role) => hasTokenRole(token, role)); });
 
   constructor(readonly authStore: AuthStore) { }
 
